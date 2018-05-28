@@ -8,7 +8,6 @@ metricPrefix: Custom Metrics|InformaticaPowerCenter|
 servers:
    - displayName: "InformaticaPowerCenterTest"
      host: "http://infawebservicehubdeva.devweb.bp.com/wsh/services/BatchServices/"
-     port: 80
      username: "INFA_WEBSRVCHUB"
      password: "test"
      encryptedPassword: ""
@@ -27,9 +26,9 @@ proxy:
   username:
   password:
 
-# For each server you monitor, you will need a total of 1(by default) + 1(for serverMetrics) + 1(for jkMetrics) + 1(for each custom URL)
+# For each server you monitor, you will need a total of 1(by default) + 1(for DIServer flow) + 3(for WorkflowDetails flow)
 
-# According to the default config.yml, we have only 1 server => 1(by default) + 1(for jkMetrics) + 1 (for serverMetrics) + 1(assume one custom URL ) = 4 threads for one server.
+# According to the default config.yml, we have only 1 server => 1(by default) + 1(for DIServer flow) + 3(for WorkflowDetails flow) = 5 threads for one server.
 # By default we want to support 5 servers, so it is 5 * 4 = 20 threads.
 
 # So, please edit this value based on the your configuration.

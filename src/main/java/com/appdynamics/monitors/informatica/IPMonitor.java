@@ -107,9 +107,6 @@ public class IPMonitor extends ABaseMonitor {
                     }
                 }
 
-                AssertUtils.assertNotNull(server.get("port"), "The 'port' in config.yml is not initialised");
-                instance.setPort((Integer) server.get("port"));
-
                 AssertUtils.assertNotNull(server.get("domainName"), "The domainName is not initialised");
                 instance.setDomainName((String) server.get("domainName"));
 

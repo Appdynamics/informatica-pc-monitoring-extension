@@ -73,6 +73,7 @@ public class WorkFlowDetailsTask implements Runnable {
     public void run() {
         try {
             logger.debug("Creating WorkFlowDetails request");
+//            TODO Add logic for checking second server in case first one fails: after error message sample resopnse is provided by client
             SOAPMessage soapResponse = soapClient.callSoapWebService(instance.getHost() + "DataIntegration", RequestTypeEnum.GETWORKFLOWDETAILS.name(), instance, sessionID, folderName, workflowName, diServerInfoList.get(0).getServiceName());
 
             /*String mssg =
@@ -122,23 +123,19 @@ public class WorkFlowDetailsTask implements Runnable {
             InputStream is = new ByteArrayInputStream(mssg.getBytes());
             SOAPMessage responseStr = MessageFactory.newInstance().createMessage(null, is);*/
 
-
-            WorkflowInfo workflowInfo = new WorkflowInfo(folderName, workflowName);
-            WorkflowDetailsResponse workflowDetailsResponse = new WorkflowDetailsResponse(soapResponse, workflowInfo);
+            WorkflowDetailsResponse workflowDetailsResponse = new WorkflowDetailsResponse(soapResponse);
             WorkflowInfo workflowDetails = workflowDetailsResponse.getWorkflowDetails();
 
             //List<Map> metricList = (List<Map>) contextConfiguration.getConfigYml().get("metrics");
 
             metrics.add(new Metric("WorkflowRunStatus", Integer.toString(workflowDetails.getWorkflowRunStatus().ordinal()), metricPrefix + "|"
-                    + workflowDetails.getFolderName() + "|" + workflowDetails.getName() + "|"));
+                    + workflowDetails.getFolderName() + "|" + workflowDetails.getName() + "|" + "WorkflowRunStatus"));
             metrics.add(new Metric("WorkflowRunType", Integer.toString(workflowDetails.getWorkflowRunType().ordinal()), metricPrefix + "|"
-                    + workflowDetails.getFolderName() + "|" + workflowDetails.getName() + "|"));
+                    + workflowDetails.getFolderName() + "|" + workflowDetails.getName() + "|" + "WorkflowRunType"));
             metrics.add(new Metric("RunErrorCode", Long.toString(workflowDetails.getRunErrorCode()), metricPrefix + "|"
-                    + workflowDetails.getFolderName() + "|" + workflowDetails.getName() + "|"));
-
+                    + workflowDetails.getFolderName() + "|" + workflowDetails.getName() + "|" + "RunErrorCode"));
             metrics.add(new Metric("WorkflowRunId", Long.toString(workflowDetails.getWorkflowRunID()), metricPrefix + "|"
-                    + workflowDetails.getFolderName() + "|" + workflowDetails.getName() + "|"));
-
+                    + workflowDetails.getFolderName() + "|" + workflowDetails.getName() + "|" + "WorkflowRunId"));
 
             if (metrics != null && metrics.size() > 0) {
                 metricWriteHelper.transformAndPrintMetrics(metrics);

@@ -64,7 +64,7 @@ public class IPMonitorTask implements AMonitorTaskRunnable {
             BigDecimal loginStatus = BigDecimal.ZERO;
             SOAPMessage response = soapClient.callSoapWebService(instance.getHost() + "Metadata", RequestTypeEnum.LOGIN.name(), instance, null, null, null, null);
 
-            /*String mssg = "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\">" +
+/*            String mssg = "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\">" +
                     "   <soapenv:Header>" +
                     "      <ns1:Context xmlns:ns1=\"http://www.informatica.com/wsh\">" +
                     "         <SessionId>cd032b685b50477e16321983a5a</SessionId>" +
@@ -83,7 +83,7 @@ public class IPMonitorTask implements AMonitorTaskRunnable {
             if(StringUtils.hasText(sessionID)){
                 loginStatus = BigDecimal.ONE;
             }
-            metricWriterHelper.printMetric(metricPrefix + "Availability", loginStatus, "AVG.AVG.IND");
+            metricWriterHelper.printMetric(metricPrefix + "|Availability", loginStatus, "AVG.AVG.IND");
 
             Phaser phaser = new Phaser();
 

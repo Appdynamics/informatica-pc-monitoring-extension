@@ -14,7 +14,6 @@ package com.appdynamics.monitors.informatica;
 public class Instance {
 
     private String host;
-    private Integer port;
     private Boolean useSSL;
     private String username;
     private String password;
@@ -33,14 +32,6 @@ public class Instance {
 
     public void setHost(String host) {
         this.host = host;
-    }
-
-    public Integer getPort() {
-        return port;
-    }
-
-    public void setPort(Integer port) {
-        this.port = port;
     }
 
     public Boolean getUseSSL() {
@@ -127,8 +118,6 @@ public class Instance {
     public String toString(){
         StringBuilder builder = new StringBuilder();
         builder.append("host : " + host);
-        builder.append("|");
-        builder.append(" port : " + port);
         builder.append("|");
         builder.append(" useSSL : " + useSSL.toString());
         builder.append("|");
