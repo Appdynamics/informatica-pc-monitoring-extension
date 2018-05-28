@@ -46,7 +46,7 @@ public class WorkFlowDetailsTask implements Runnable {
 
     private SOAPClient soapClient;
 
-    private String sessionID;
+    private static String sessionID;
 
     private List<Metric> metrics = new ArrayList<Metric>();
 
@@ -74,7 +74,6 @@ public class WorkFlowDetailsTask implements Runnable {
         try {
             logger.debug("Creating WorkFlowDetails request");
             SOAPMessage soapResponse = soapClient.callSoapWebService(instance.getHost() + "DataIntegration", RequestTypeEnum.GETWORKFLOWDETAILS.name(), instance, sessionID, folderName, workflowName, diServerInfoList.get(0).getServiceName());
-
 
             /*String mssg =
                     "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\">" +
@@ -121,8 +120,8 @@ public class WorkFlowDetailsTask implements Runnable {
                             "   </soapenv:Body>" +
                             "</soapenv:Envelope>";
             InputStream is = new ByteArrayInputStream(mssg.getBytes());
-            SOAPMessage responseStr = MessageFactory.newInstance().createMessage(null, is);
-*/
+            SOAPMessage responseStr = MessageFactory.newInstance().createMessage(null, is);*/
+
 
             WorkflowInfo workflowInfo = new WorkflowInfo(folderName, workflowName);
             WorkflowDetailsResponse workflowDetailsResponse = new WorkflowDetailsResponse(soapResponse, workflowInfo);
@@ -146,7 +145,7 @@ public class WorkFlowDetailsTask implements Runnable {
             }
 
     }catch(Exception e){
-            logger.error("WorkFlowDetailsTask task error: " + e.getMessage());
+            logger.error("WorkFlowDetailsTask task error: ", e);
         }finally {
             logger.debug("WorkFlowDetailsTask Phaser arrived for {}", instance.getDisplayName());
             phaser.arriveAndDeregister();

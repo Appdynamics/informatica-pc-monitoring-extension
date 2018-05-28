@@ -40,7 +40,7 @@ public class WorkflowDetailsResponse {
             workflowInfo.setWorkflowRunID(Long.valueOf(body.getAttribute("WorkflowRunId")));
 
         }catch(SOAPException e){
-            logger.error("SOAPException retrieving workflowDetails response: " + e.getMessage());
+            logger.error("SOAPException retrieving workflowDetails response: ", e);
         }
         return workflowInfo;
     }

@@ -23,7 +23,6 @@
         <task-arguments>
             <!-- config file-->
             <argument name="config-file" is-required="true" default-value="monitors/IPMonitor/config.yml" />
-            <argument name="metric-file" is-required="true" default-value="monitors/IPMonitor/metrics.xml" />
         </task-arguments>
         <java-task>
             <classpath>informatica-powercenter-monitoring-extension.jar</classpath>

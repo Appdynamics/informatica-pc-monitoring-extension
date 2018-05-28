@@ -9,5 +9,7 @@
 package com.appdynamics.monitors.informatica.enums;
 
 public enum WorkflowRunTypeEnum {
+
+    UNSCHEDULE,
     SCHEDULE
 }

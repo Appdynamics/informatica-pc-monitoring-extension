@@ -46,9 +46,7 @@ public class AllWorkFlowsTask implements Runnable {
 
     private SOAPClient soapClient;
 
-    private String sessionID;
-
-    private ObjectMapper objectMapper = new ObjectMapper();
+    private static String sessionID;
 
     private String folderName;
 
@@ -97,7 +95,6 @@ public class AllWorkFlowsTask implements Runnable {
             InputStream is = new ByteArrayInputStream(mssg.getBytes());
             SOAPMessage responseStr = MessageFactory.newInstance().createMessage(null, is);*/
 
-
             AllWorkflowResponse allWorkflowResponse = new AllWorkflowResponse(soapResponse);
             List<WorkflowInfo> workflowList = allWorkflowResponse.getAllWorkflows();
 
@@ -110,7 +107,7 @@ public class AllWorkFlowsTask implements Runnable {
             }
 
         }catch(Exception e){
-            logger.error("WorkflowDetail task error: " + e.getMessage());
+            logger.error("WorkflowDetail task error: ", e);
         }finally {
             logger.debug("Workflow Phaser arrived for {}", instance.getDisplayName());
             phaser.arriveAndDeregister();

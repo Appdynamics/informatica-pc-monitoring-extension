@@ -47,7 +47,7 @@ public class FoldersTask implements Runnable {
 
     private SOAPClient soapClient;
 
-    private String sessionID;
+    private static String sessionID;
 
     private List<DIServerInfo> diServerInfos;
 
@@ -92,8 +92,6 @@ public class FoldersTask implements Runnable {
             SOAPMessage responseStr = MessageFactory.newInstance().createMessage(null, is);*/
 
 
-
-
             AllFoldersResponse allFoldersResponse = new AllFoldersResponse(soapResponse);
 
             //Having retrieved allFolders, get all work-flows for each folder one by one with max 2 attempts
@@ -104,7 +102,7 @@ public class FoldersTask implements Runnable {
             }
 
         }catch(Exception e){
-            logger.error("FoldersTask task error: " + e.getMessage());
+            logger.error("FoldersTask task error: ", e);
         }finally {
             logger.debug("FoldersTask Phaser arrived for {}", instance.getDisplayName());
             phaser.arriveAndDeregister();

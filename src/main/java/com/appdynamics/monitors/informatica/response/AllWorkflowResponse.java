@@ -58,7 +58,7 @@ public class AllWorkflowResponse {
                 workflowInfoList.add(workflowInfo);
             }
         }catch(SOAPException e) {
-            logger.error("SOAPException retrieving WorkflowInfo response: " + e.getMessage());
+            logger.error("SOAPException retrieving WorkflowInfo response: ", e);
         }
         return workflowInfoList;
     }

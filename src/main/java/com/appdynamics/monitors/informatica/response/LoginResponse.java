@@ -40,7 +40,7 @@ public class LoginResponse {
             sessionId = body.getFirstChild().getNextSibling().getFirstChild().getNodeValue();
             logger.debug("Returning session ID: " + sessionId);
         }catch(SOAPException e){
-            logger.error("SOAPException retrieving login response: " + e.getMessage());
+            logger.error("SOAPException retrieving login response: ", e);
         }
         return sessionId;
     }

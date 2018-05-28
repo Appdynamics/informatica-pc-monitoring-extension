@@ -36,7 +36,7 @@ public class PingDIServerResponse {
             SOAPBody body = soapResponse.getSOAPBody();
             status = DIServerStatusEnum.valueOf(body.getFirstChild().getNextSibling().getFirstChild().getNodeValue());
         }catch(SOAPException e){
-            logger.error("SOAPException retrieving pingDIServer response: " + e.getMessage());
+            logger.error("SOAPException retrieving pingDIServer response: ", e);
         }
         return status;
     }

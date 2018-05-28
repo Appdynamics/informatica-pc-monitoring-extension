@@ -51,7 +51,7 @@ public class AllDIServerResponse {
                 }
             }
         }catch(SOAPException e){
-            logger.error("SOAPException retrieving DIServerInfo response: " + e.getMessage());
+            logger.error("SOAPException retrieving DIServerInfo response: ", e);
         }
         return diServerInfoList;
     }

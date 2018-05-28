@@ -48,7 +48,7 @@ public class AllFoldersResponse {
                 }
             }
         }catch(SOAPException e){
-            logger.error("SOAPException retrieving allFolders response: " + e.getMessage());
+            logger.error("SOAPException retrieving allFolders response: ", e);
         }
         return foldersList;
     }

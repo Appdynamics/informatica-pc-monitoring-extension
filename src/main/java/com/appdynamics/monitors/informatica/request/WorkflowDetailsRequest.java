@@ -52,7 +52,7 @@ public class WorkflowDetailsRequest {
 
             soapBody.addNamespaceDeclaration("ns0" , namespace);
         }catch(Exception e){
-            logger.error("Error generating workflowDetail request body: " + e.getMessage());
+            logger.error("Error generating workflowDetail request body: ", e);
         }
         return soapBody;
     }

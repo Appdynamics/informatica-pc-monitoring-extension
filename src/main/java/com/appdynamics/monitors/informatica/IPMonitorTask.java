@@ -48,7 +48,7 @@ public class IPMonitorTask implements AMonitorTaskRunnable {
 
     private SOAPClient soapClient;
 
-    private String sessionID;
+    private static String sessionID;
 
     public IPMonitorTask(TasksExecutionServiceProvider serviceProvider, MonitorContextConfiguration configuration, Instance instance) {
         this.configuration = configuration;
@@ -93,9 +93,6 @@ public class IPMonitorTask implements AMonitorTaskRunnable {
 
             //Wait for all tasks to finish
             phaser.arriveAndAwaitAdvance();
-            /*if(sessionID != null){
-                soapClient.callSoapWebService(instance.getHost() + "Metadata", RequestTypeEnum.LOGOUT.name(), instance, sessionID, null);
-            }*/
             logger.info("Completed the Informatica Power Center Monitoring task");
 
         }catch(Exception e) {
@@ -105,6 +102,9 @@ public class IPMonitorTask implements AMonitorTaskRunnable {
 
     public void onTaskComplete() {
         logger.info("All tasks for instance {} finished");
+        if(sessionID != null){
+            soapClient.callSoapWebService(instance.getHost() + "Metadata", RequestTypeEnum.LOGOUT.name(), instance, sessionID, null, null, null);
+        }
     }
 
 }

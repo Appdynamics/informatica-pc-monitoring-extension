@@ -49,7 +49,7 @@ public class PingDIServerRequest {
             soapBody.addNamespaceDeclaration("ns0" , namespace);
 
         }catch(Exception e){
-            logger.error("Error generating pingDIServer request body: " + e.getMessage());
+            logger.error("Error generating pingDIServer request body: ", e);
         }
         return soapBody;
     }

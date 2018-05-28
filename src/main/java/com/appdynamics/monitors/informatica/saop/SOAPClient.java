@@ -23,11 +23,11 @@ import java.util.Map;
  */
 public class SOAPClient {
 
-    private String namespaceXSI = "xsi";
-    private String namespaceXSIURI = "http://www.w3.org/2001/XMLSchema-instance";
-    private String namespaceXSD = "xsd";
-    private String namespaceXSDURI = "http://www.w3.org/2001/XMLSchema";
-    private String contextNamespace = "http://www.informatica.com/wsh";
+    private static String namespaceXSI = "xsi";
+    private static String namespaceXSIURI = "http://www.w3.org/2001/XMLSchema-instance";
+    private static String namespaceXSD = "xsd";
+    private static String namespaceXSDURI = "http://www.w3.org/2001/XMLSchema";
+    private static String contextNamespace = "http://www.informatica.com/wsh";
 
     private static final org.slf4j.Logger logger = LoggerFactory.getLogger(SOAPClient.class);
 
@@ -39,7 +39,7 @@ public class SOAPClient {
      * @return
      * @throws Exception
      */
-    public SOAPMessage createSOAPRequest(String requestType, Instance instanceInfo, String sessionID, String folderName, String workflowName, String serverName) throws Exception {
+    public static SOAPMessage createSOAPRequest(String requestType, Instance instanceInfo, String sessionID, String folderName, String workflowName, String serverName) throws Exception {
 
         MessageFactory messageFactory = MessageFactory.newInstance();
         SOAPMessage soapMessage = messageFactory.createMessage();
@@ -53,7 +53,7 @@ public class SOAPClient {
             logger.debug( requestType + " SOAP Request being sent: " + out.toString());
         }
 
-        soapMessage.writeTo(System.out);
+        //soapMessage.writeTo(System.out);
         return soapMessage;
     }
 
@@ -65,7 +65,7 @@ public class SOAPClient {
      * @param sessionID
      * @return SOAPMessage
      */
-    public SOAPMessage callSoapWebService(String soapEndpointUrl, String soapAction, Instance instanceInfo, String sessionID, String folderName, String workflowName, String serverName) {
+    public static SOAPMessage callSoapWebService(String soapEndpointUrl, String soapAction, Instance instanceInfo, String sessionID, String folderName, String workflowName, String serverName) {
 
         SOAPMessage soapResponse = null;
         try {
@@ -84,7 +84,7 @@ public class SOAPClient {
             soapConnection.close();
 
         } catch (Exception e) {
-            logger.error("Error occurred invoking SOAP Request: " +e.getMessage());
+            logger.error("Error occurred invoking SOAP Request: ", e);
         }
         return soapResponse;
     }
@@ -97,7 +97,7 @@ public class SOAPClient {
      * @param sessionID
      * @throws SOAPException
      */
-    private void createSoapEnvelope(SOAPMessage soapMessage, String requestType, Instance instanceInfo, String sessionID, String folderName, String workflowName, String serverName) throws SOAPException {
+    private static void createSoapEnvelope(SOAPMessage soapMessage, String requestType, Instance instanceInfo, String sessionID, String folderName, String workflowName, String serverName) throws SOAPException {
         SOAPPart soapPart = soapMessage.getSOAPPart();
 
         // SOAP Envelope
@@ -138,7 +138,6 @@ public class SOAPClient {
         SOAPElement soapBodyElem1 = soapBodyElem.addChildElement("USCity", namespace);
         soapBodyElem1.addTextNode("New York");*/
     }
-
 /*
     public static void main(String[] args){
         try {

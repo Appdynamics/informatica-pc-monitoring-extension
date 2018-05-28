@@ -52,7 +52,7 @@ public class LoginRequest {
             soapBody.addNamespaceDeclaration("ns0" , namespace);
 
         }catch(Exception e){
-            logger.error("Error generating login request body: " + e.getMessage());
+            logger.error("Error generating login request body: ", e);
         }
         return soapBody;
     }

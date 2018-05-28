@@ -52,15 +52,7 @@ public class DIServerTask implements Runnable {
 
     private SOAPClient soapClient;
 
-    private String sessionID;
-
-    private ObjectMapper objectMapper = new ObjectMapper();
-
-    private int numOfAttempts =1;
-
-    public List<Metric> getMetrics() {
-        return metrics;
-    }
+    private static String sessionID;
 
     public DIServerTask(MonitorContextConfiguration contextConfiguration, Instance instance, MetricWriteHelper metricWriterHelper, String metricPrefix, Phaser phaser, SOAPClient soapClient, String sessionID) {
         this.contextConfiguration = contextConfiguration;
@@ -77,7 +69,7 @@ public class DIServerTask implements Runnable {
         try {
             SOAPMessage soapResponse = soapClient.callSoapWebService(instance.getHost() + "Metadata", RequestTypeEnum.ALLDISERVERS.name(), instance, sessionID, null, null, null);
 
-            String mssg = "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\">" +
+            /*String mssg = "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\">" +
                     "   <soapenv:Header>" +
                     "      <ns1:Context xmlns:ns1=\"http://www.informatica.com/wsh\">" +
                     "         <SessionId>cd032b685b50477e16321983a5a</SessionId>" +
@@ -96,9 +88,9 @@ public class DIServerTask implements Runnable {
                     "</soapenv:Envelope>";
             InputStream is = new ByteArrayInputStream(mssg.getBytes());
             SOAPMessage responseStr = MessageFactory.newInstance().createMessage(null, is);
-            SOAPBody respBody = responseStr.getSOAPBody();
+            SOAPBody respBody = responseStr.getSOAPBody();*/
 
-            AllDIServerResponse allDIServerResponse = new AllDIServerResponse(responseStr);
+            AllDIServerResponse allDIServerResponse = new AllDIServerResponse(soapResponse);
 
             //Having retrieved allDIServers, ping each server one by one with max 2 attempts
 
@@ -108,7 +100,7 @@ public class DIServerTask implements Runnable {
                 String serverMetricPrefix = metricPrefix + "|" + serverInfo.getDomainName() + "|" + serverInfo.getServiceName() + "|";
 
                 logger.debug("Creating pingDIServer request");
-                  soapResponse = soapClient.callSoapWebService(instance.getHost() + "DataIntegration", RequestTypeEnum.PINGDISERVER.name(), instance, sessionID, null, null, serverInfo.getServiceName());
+                soapResponse = soapClient.callSoapWebService(instance.getHost() + "DataIntegration", RequestTypeEnum.PINGDISERVER.name(), instance, sessionID, null, null, serverInfo.getServiceName());
 
                 /*mssg = "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\">" +
                         "   <soapenv:Header>" +
@@ -136,7 +128,7 @@ public class DIServerTask implements Runnable {
                 metricWriterHelper.transformAndPrintMetrics(metrics);
             }
         }catch(Exception e){
-            logger.error("DIServer flow error: " + e.getMessage());
+            logger.error("DIServer flow error: ", e);
         }finally {
             logger.debug("DIServer Phaser arrived for {}", instance.getDisplayName());
             phaser.arriveAndDeregister();

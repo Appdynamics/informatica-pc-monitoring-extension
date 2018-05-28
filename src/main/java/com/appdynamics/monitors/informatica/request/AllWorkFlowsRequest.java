@@ -40,7 +40,7 @@ public class AllWorkFlowsRequest {
             soapBody.addNamespaceDeclaration("ns0" , namespace);
 
         }catch(Exception e){
-            logger.error("Error generating allWorkflows request body: " + e.getStackTrace());
+            logger.error("Error generating allWorkflows request body: ", e);
         }
         return soapBody;
     }

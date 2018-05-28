@@ -10,5 +10,10 @@ package com.appdynamics.monitors.informatica.enums;
 
 public enum WorkflowRunStatusEnum {
 
-    FAILED
+    FAILED,
+    RUNNING,
+    SUCCEEDED,
+    ABORTED,
+    STOPPED,
+    SUSPENDED
 }

@@ -86,7 +86,7 @@ public class IPMonitor extends ABaseMonitor {
                 AssertUtils.assertNotNull(server.get("host"), "The 'host name is not initialised");
                 instance.setHost((String) server.get("host"));
 
-                AssertUtils.assertNotNull(servers, "The 'username is not initialised");
+                AssertUtils.assertNotNull(server.get("username"), "The 'username is not initialised");
                 instance.setUsername((String) server.get("username"));
 
 
@@ -107,16 +107,16 @@ public class IPMonitor extends ABaseMonitor {
                     }
                 }
 
-                AssertUtils.assertNotNull(servers, "The 'port' in config.yml is not initialised");
+                AssertUtils.assertNotNull(server.get("port"), "The 'port' in config.yml is not initialised");
                 instance.setPort((Integer) server.get("port"));
 
-                AssertUtils.assertNotNull(servers, "The domainName is not initialised");
+                AssertUtils.assertNotNull(server.get("domainName"), "The domainName is not initialised");
                 instance.setDomainName((String) server.get("domainName"));
 
-                AssertUtils.assertNotNull(servers, "The repositoryName is not initialised");
+                AssertUtils.assertNotNull(server.get("repositoryName"), "The repositoryName is not initialised");
                 instance.setRepositoryName((String) server.get("repositoryName"));
 
-                AssertUtils.assertNotNull(servers, "The userNameSpace is not initialised");
+                AssertUtils.assertNotNull(server.get("userNameSpace"), "The userNameSpace is not initialised");
                 instance.setUserNameSpace((String) server.get("userNameSpace"));
 
                 if(server.get("useSSL")!=null){
@@ -141,7 +141,7 @@ public class IPMonitor extends ABaseMonitor {
         return servers.size();
     }
 
-    public static void main(String[] args) throws TaskExecutionException {
+    /*public static void main(String[] args) throws TaskExecutionException {
 
         ConsoleAppender ca = new ConsoleAppender();
         ca.setWriter(new OutputStreamWriter(System.out));
@@ -167,5 +167,5 @@ public class IPMonitor extends ABaseMonitor {
                 }
             }
         }, 2, 30, TimeUnit.SECONDS);
-    }
+    }*/
 }
