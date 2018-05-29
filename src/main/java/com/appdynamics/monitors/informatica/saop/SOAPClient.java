@@ -16,7 +16,6 @@ import org.slf4j.LoggerFactory;
 import javax.xml.namespace.QName;
 import javax.xml.soap.*;
 import java.io.ByteArrayOutputStream;
-import java.util.Map;
 
 /**
  * @author Akshay Srivastava

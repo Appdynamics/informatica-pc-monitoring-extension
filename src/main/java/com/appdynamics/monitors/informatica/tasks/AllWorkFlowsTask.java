@@ -9,7 +9,6 @@
 package com.appdynamics.monitors.informatica.tasks;
 
 import com.appdynamics.extensions.MetricWriteHelper;
-import com.appdynamics.extensions.conf.MonitorContext;
 import com.appdynamics.extensions.conf.MonitorContextConfiguration;
 import com.appdynamics.monitors.informatica.Instance;
 import com.appdynamics.monitors.informatica.dto.DIServerInfo;
@@ -17,17 +16,11 @@ import com.appdynamics.monitors.informatica.dto.WorkflowInfo;
 import com.appdynamics.monitors.informatica.enums.RequestTypeEnum;
 import com.appdynamics.monitors.informatica.response.AllWorkflowResponse;
 import com.appdynamics.monitors.informatica.saop.SOAPClient;
-import org.codehaus.jackson.map.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.xml.soap.MessageFactory;
 import javax.xml.soap.SOAPMessage;
-import java.io.ByteArrayInputStream;
-import java.io.InputStream;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.Phaser;
 
 /**

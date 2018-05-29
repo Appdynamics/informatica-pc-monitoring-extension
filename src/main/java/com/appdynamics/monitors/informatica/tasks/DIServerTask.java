@@ -17,18 +17,12 @@ import com.appdynamics.monitors.informatica.enums.RequestTypeEnum;
 import com.appdynamics.monitors.informatica.response.AllDIServerResponse;
 import com.appdynamics.monitors.informatica.response.PingDIServerResponse;
 import com.appdynamics.monitors.informatica.saop.SOAPClient;
-import org.codehaus.jackson.map.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.xml.soap.MessageFactory;
-import javax.xml.soap.SOAPBody;
 import javax.xml.soap.SOAPMessage;
-import java.io.ByteArrayInputStream;
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.Phaser;
 
 /**
