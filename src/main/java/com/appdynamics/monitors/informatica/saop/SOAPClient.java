@@ -77,7 +77,7 @@ public class SOAPClient {
 
             if(logger.isDebugEnabled()){
                 ByteArrayOutputStream out = new ByteArrayOutputStream();
-                soapResponse.writeTo(System.out);
+                //soapResponse.writeTo(System.out);
                 logger.debug( " SOAP Response received: " + out.toString());
             }
             soapConnection.close();
