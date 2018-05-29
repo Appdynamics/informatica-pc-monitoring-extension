@@ -30,6 +30,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Phaser;
 
+/**
+ * @author Akshay Srivastava
+ */
 public class WorkFlowDetailsTask implements Runnable {
 
     private static final Logger logger = LoggerFactory.getLogger(WorkFlowDetailsTask.class);
@@ -70,58 +73,16 @@ public class WorkFlowDetailsTask implements Runnable {
         phaser.register();
     }
 
+    /**
+     * Fetches and publishes workflowDetails metrics
+     */
     public void run() {
         try {
-            logger.debug("Creating WorkFlowDetails request");
-//            TODO Add logic for checking second server in case first one fails: after error message sample resopnse is provided by client
-            SOAPMessage soapResponse = soapClient.callSoapWebService(instance.getHost() + "DataIntegration", RequestTypeEnum.GETWORKFLOWDETAILS.name(), instance, sessionID, folderName, workflowName, diServerInfoList.get(0).getServiceName());
 
-            /*String mssg =
-                    "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\">" +
-                            "   <soapenv:Header>" +
-                            "      <ns1:Context xmlns:ns1=\"http://www.informatica.com/wsh\">" +
-                            "         <SessionId>cd032b685b50477e16321983a5a</SessionId>" +
-                            "      </ns1:Context>" +
-                            "   </soapenv:Header>" +
-                            "   <soapenv:Body>" +
-                            "      <ns1:GetWorkflowDetailsReturn xmlns:ns1=\"http://www.informatica.com/wsh\">" +
-                            "         <FolderName>BI_CMNSTG</FolderName>" +
-                            "         <WorkflowName>wf_CMNSTG_ET</WorkflowName>" +
-                            "         <WorkflowRunId>15905150</WorkflowRunId>" +
-                            "         <WorkflowRunInstanceName/>" +
-                            "         <WorkflowRunStatus>FAILED</WorkflowRunStatus>" +
-                            "         <WorkflowRunType>SCHEDULE</WorkflowRunType>" +
-                            "         <RunErrorCode>36331</RunErrorCode>" +
-                            "         <RunErrorMessage>WARNING: Worklet task instance [PASS1] failed and its \"fail parent if this task fails\" setting is turned on.  So, Workflow [wf_CMNSTG_ET] will be failed.</RunErrorMessage>" +
-                            "         <StartTime>" +
-                            "            <Date>1</Date>" +
-                            "            <NanoSeconds>0</NanoSeconds>" +
-                            "            <Seconds>1</Seconds>" +
-                            "            <Minutes>35</Minutes>" +
-                            "            <Hours>20</Hours>" +
-                            "            <Month>5</Month>" +
-                            "            <Year>2018</Year>" +
-                            "            <UTCTime>1525224901</UTCTime>" +
-                            "         </StartTime>" +
-                            "         <EndTime>" +
-                            "            <Date>1</Date>" +
-                            "            <NanoSeconds>0</NanoSeconds>" +
-                            "            <Seconds>58</Seconds>" +
-                            "            <Minutes>13</Minutes>" +
-                            "            <Hours>21</Hours>" +
-                            "            <Month>5</Month>" +
-                            "            <Year>2018</Year>" +
-                            "            <UTCTime>1525227238</UTCTime>" +
-                            "         </EndTime>" +
-                            "         <UserName>Administrator</UserName>" +
-                            "         <LogFileName>F:\\nagp_infa_cinta\\NAGP_IS_ASCII\\WorkflowLogs\\wf_CMNSTG_ET.log</LogFileName>" +
-                            "         <LogFileCodePage>2252</LogFileCodePage>" +
-                            "         <OSUser/>" +
-                            "      </ns1:GetWorkflowDetailsReturn>" +
-                            "   </soapenv:Body>" +
-                            "</soapenv:Envelope>";
-            InputStream is = new ByteArrayInputStream(mssg.getBytes());
-            SOAPMessage responseStr = MessageFactory.newInstance().createMessage(null, is);*/
+            phaser.arriveAndAwaitAdvance();
+            logger.debug("Creating WorkFlowDetails request");
+            //TODO: Add logic for checking second server in case first one fails: after error message sample resopnse is provided by client
+            SOAPMessage soapResponse = soapClient.callSoapWebService(instance.getHost() + "DataIntegration", RequestTypeEnum.GETWORKFLOWDETAILS.name(), instance, sessionID, folderName, workflowName, diServerInfoList.get(0).getServiceName());
 
             WorkflowDetailsResponse workflowDetailsResponse = new WorkflowDetailsResponse(soapResponse);
             WorkflowInfo workflowDetails = workflowDetailsResponse.getWorkflowDetails();
@@ -141,11 +102,14 @@ public class WorkFlowDetailsTask implements Runnable {
                 metricWriteHelper.transformAndPrintMetrics(metrics);
             }
 
-    }catch(Exception e){
+        } catch (Exception e) {
             logger.error("WorkFlowDetailsTask task error: ", e);
-        }finally {
+        } finally {
             logger.debug("WorkFlowDetailsTask Phaser arrived for {}", instance.getDisplayName());
             phaser.arriveAndDeregister();
+            if (sessionID != null) {
+                soapClient.callSoapWebService(instance.getHost() + "Metadata", RequestTypeEnum.LOGOUT.name(), instance, sessionID, null, null, null);
+            }
         }
     }
 }

@@ -31,6 +31,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Phaser;
 
+/**
+ * @author Akshay Srivastava
+ */
 public class FoldersTask implements Runnable {
 
     private static final Logger logger = LoggerFactory.getLogger(FoldersTask.class);
@@ -63,34 +66,12 @@ public class FoldersTask implements Runnable {
         phaser.register();
     }
 
+    /**
+     * Fetches getAllFolders response, then for each folder creates a new thread of AllWorkflowTask
+     */
     public void run() {
         try {
             SOAPMessage soapResponse = soapClient.callSoapWebService(instance.getHost() + "Metadata", RequestTypeEnum.GETALLFOLDERS.name(), instance, sessionID, null, null, null);
-
-            /*String mssg =
-            "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\">" +
-                    "   <soapenv:Header>" +
-                    "      <ns1:Context xmlns:ns1=\"http://www.informatica.com/wsh\">" +
-                    "         <SessionId>cd032b685b50477e16321983a5a</SessionId>" +
-                    "      </ns1:Context>" +
-                    "   </soapenv:Header>" +
-                    "   <soapenv:Body>" +
-                    "      <ns1:GetAllFoldersReturn xmlns:ns1=\"http://www.informatica.com/wsh\">" +
-                    "         <FolderInfo>" +
-                    "            <Name>NAGP_FIRE</Name>" +
-                    "         </FolderInfo>" +
-                    "         <FolderInfo>" +
-                    "            <Name>SRA_CMNSTG_old_0214</Name>" +
-                    "         </FolderInfo>" +
-                    "         <FolderInfo>" +
-                    "            <Name>MKTRSK_NGL_HISTORICAL</Name>" +
-                    "         </FolderInfo>" +
-                    "      </ns1:GetAllFoldersReturn>" +
-                    "   </soapenv:Body>" +
-                    "</soapenv:Envelope>";
-            InputStream is = new ByteArrayInputStream(mssg.getBytes());
-            SOAPMessage responseStr = MessageFactory.newInstance().createMessage(null, is);*/
-
 
             AllFoldersResponse allFoldersResponse = new AllFoldersResponse(soapResponse);
 
@@ -100,6 +81,7 @@ public class FoldersTask implements Runnable {
                 AllWorkFlowsTask allWorkFlowsTask = new AllWorkFlowsTask(contextConfiguration, instance, metricWriterHelper, metricPrefix, phaser, soapClient, sessionID, folderName, diServerInfos);
                 contextConfiguration.getContext().getExecutorService().execute("MetricCollectorTask", allWorkFlowsTask);
             }
+            phaser.arriveAndAwaitAdvance();
 
         }catch(Exception e){
             logger.error("FoldersTask task error: ", e);

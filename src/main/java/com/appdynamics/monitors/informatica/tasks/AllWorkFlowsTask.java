@@ -30,6 +30,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Phaser;
 
+/**
+ * @author Akshay Srivastava
+ */
 public class AllWorkFlowsTask implements Runnable {
 
     private static final Logger logger = LoggerFactory.getLogger(AllWorkFlowsTask.class);
@@ -65,47 +68,25 @@ public class AllWorkFlowsTask implements Runnable {
         phaser.register();
     }
 
+    /**
+     * Fetches allWorkflow response, then for each workflow creates a new thread of getWorkflowDetails.
+     */
     public void run() {
         try {
             logger.debug("Creating workflowDetails request");
             SOAPMessage soapResponse = soapClient.callSoapWebService(instance.getHost() + "Metadata", RequestTypeEnum.GETALLWORKFLOWS.name(), instance, sessionID, folderName, null, null);
 
-            /*String mssg =
-                    "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\">" +
-                            "   <soapenv:Header>" +
-                            "      <ns1:Context xmlns:ns1=\"http://www.informatica.com/wsh\">" +
-                            "         <SessionId>cd032b685b50477e16321983a5a</SessionId>" +
-                            "      </ns1:Context>" +
-                            "   </soapenv:Header>" +
-                            "   <soapenv:Body>" +
-                            "      <ns1:GetAllWorkflowsReturn xmlns:ns1=\"http://www.informatica.com/wsh\">" +
-                            "         <WorkflowInfo>" +
-                            "            <Name>wf_CMNSTG_COMPLIANCE_INSIGHT_1TL</Name>" +
-                            "            <IsValid>true</IsValid>" +
-                            "            <FolderName>BI_CMNSTG</FolderName>" +
-                            "         </WorkflowInfo>" +
-                            "         <WorkflowInfo>" +
-                            "            <Name>wf_CMNSTG_ET</Name>" +
-                            "            <IsValid>true</IsValid>" +
-                            "            <FolderName>BI_CMNSTG</FolderName>" +
-                            "         </WorkflowInfo>" +
-                            "      </ns1:GetAllWorkflowsReturn>" +
-                            "   </soapenv:Body>" +
-                            "</soapenv:Envelope>";
-            InputStream is = new ByteArrayInputStream(mssg.getBytes());
-            SOAPMessage responseStr = MessageFactory.newInstance().createMessage(null, is);*/
-
             AllWorkflowResponse allWorkflowResponse = new AllWorkflowResponse(soapResponse);
             List<WorkflowInfo> workflowList = allWorkflowResponse.getAllWorkflows();
 
-            //Having retrieved workflows, get details for each workflow one by one with max 2 attempts
+            //Having retrieved workflows, get details for each workflow one by one with max 2 attempts( one for each server present in DIServerInfos)
             for(WorkflowInfo workflowInfo : workflowList){
 
                 logger.debug("Creating workflowDetails Task");
                 WorkFlowDetailsTask workFlowDetailsTask = new WorkFlowDetailsTask(contextConfiguration, instance, metricWriterHelper, metricPrefix, phaser, soapClient, sessionID, folderName, workflowInfo.getName(), DIServerInfos);
                 contextConfiguration.getContext().getExecutorService().execute("MetricCollectorTask", workFlowDetailsTask);
             }
-
+            phaser.arriveAndAwaitAdvance();
         }catch(Exception e){
             logger.error("WorkflowDetail task error: ", e);
         }finally {

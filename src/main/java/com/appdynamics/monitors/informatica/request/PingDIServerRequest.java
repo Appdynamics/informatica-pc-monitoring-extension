@@ -9,14 +9,11 @@
 package com.appdynamics.monitors.informatica.request;
 
 
-import com.appdynamics.monitors.informatica.dto.DIServerInfo;
-import org.codehaus.jackson.map.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.xml.soap.SOAPBody;
 import javax.xml.soap.SOAPElement;
-import java.util.Map;
 
 /**
  * @author Akshay Srivastava

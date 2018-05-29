@@ -19,6 +19,9 @@ import javax.xml.soap.SOAPBody;
 import javax.xml.soap.SOAPException;
 import javax.xml.soap.SOAPMessage;
 
+/**
+ * @author Akshay Srivastava
+ */
 public class WorkflowDetailsResponse {
 
     private static final Logger logger = LoggerFactory.getLogger(WorkflowDetailsResponse.class);

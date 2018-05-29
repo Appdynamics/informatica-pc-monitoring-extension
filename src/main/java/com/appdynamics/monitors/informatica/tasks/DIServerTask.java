@@ -65,35 +65,16 @@ public class DIServerTask implements Runnable {
         phaser.register();
     }
 
+    /**
+     * Collects all DI servers, ping their status individually and then invoked allFolderRequest
+     */
     public void run() {
         try {
             SOAPMessage soapResponse = soapClient.callSoapWebService(instance.getHost() + "Metadata", RequestTypeEnum.ALLDISERVERS.name(), instance, sessionID, null, null, null);
 
-            /*String mssg = "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\">" +
-                    "   <soapenv:Header>" +
-                    "      <ns1:Context xmlns:ns1=\"http://www.informatica.com/wsh\">" +
-                    "         <SessionId>cd032b685b50477e16321983a5a</SessionId>" +
-                    "      </ns1:Context>" +
-                    "   </soapenv:Header>" +
-                    "   <soapenv:Body>" +
-                    "      <ns1:GetAllDIServersReturn xmlns:ns1=\"http://www.informatica.com/wsh\">" +
-                    "         <DIServerInfo>" +
-                    "            <Name>NAGP_IS_ASCII</Name>" +
-                    "         </DIServerInfo>" +
-                    "         <DIServerInfo>" +
-                    "            <Name>NAGP_IS_UNICODE</Name>" +
-                    "         </DIServerInfo>" +
-                    "      </ns1:GetAllDIServersReturn>" +
-                    "   </soapenv:Body>" +
-                    "</soapenv:Envelope>";
-            InputStream is = new ByteArrayInputStream(mssg.getBytes());
-            SOAPMessage responseStr = MessageFactory.newInstance().createMessage(null, is);
-            SOAPBody respBody = responseStr.getSOAPBody();*/
-
             AllDIServerResponse allDIServerResponse = new AllDIServerResponse(soapResponse);
 
             //Having retrieved allDIServers, ping each server one by one with max 2 attempts
-
             List<DIServerInfo> serverInfoList = allDIServerResponse.getServerInfo();
             for(DIServerInfo serverInfo : serverInfoList){
                 serverInfo.setDomainName(instance.getDomainName());
@@ -102,24 +83,13 @@ public class DIServerTask implements Runnable {
                 logger.debug("Creating pingDIServer request");
                 soapResponse = soapClient.callSoapWebService(instance.getHost() + "DataIntegration", RequestTypeEnum.PINGDISERVER.name(), instance, sessionID, null, null, serverInfo.getServiceName());
 
-                /*mssg = "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\">" +
-                        "   <soapenv:Header>" +
-                        "      <ns1:Context xmlns:ns1=\"http://www.informatica.com/wsh\">" +
-                        "         <SessionId>cd032b685b50477e16321983a5a</SessionId>" +
-                        "      </ns1:Context>" +
-                        "   </soapenv:Header>" +
-                        "   <soapenv:Body>" +
-                        "      <ns1:PingDIServerReturn xmlns:ns1=\"http://www.informatica.com/wsh\">ALIVE</ns1:PingDIServerReturn>" +
-                        "   </soapenv:Body>" +
-                        "</soapenv:Envelope>";
-                is = new ByteArrayInputStream(mssg.getBytes());
-                responseStr = MessageFactory.newInstance().createMessage(null, is);*/
-
                 PingDIServerResponse DIServerResponse = new PingDIServerResponse(soapResponse);
+
                 serverInfo.setStatus(DIServerResponse.getStatus());
                 metrics.add(new Metric("DIServerStatus", Integer.toString(serverInfo.getStatus().ordinal()), serverMetricPrefix));
             }
 
+            // Task to get all folders information
             FoldersTask foldersTask = new FoldersTask(contextConfiguration, instance, metricWriterHelper, metricPrefix, phaser, soapClient, sessionID, serverInfoList);
             contextConfiguration.getContext().getExecutorService().execute("MetricCollectorTask", foldersTask);
             logger.debug("Registering MetricCollectorTask phaser for " + instance.getDisplayName());
@@ -127,6 +97,7 @@ public class DIServerTask implements Runnable {
             if (metrics != null && metrics.size() > 0) {
                 metricWriterHelper.transformAndPrintMetrics(metrics);
             }
+            phaser.arriveAndAwaitAdvance();
         }catch(Exception e){
             logger.error("DIServer flow error: ", e);
         }finally {

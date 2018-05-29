@@ -39,7 +39,6 @@ public class IPMonitor extends ABaseMonitor {
     private static final String METRIC_PREFIX = "Custom Metrics|InformaticaPowerCenter|";
 
 
-
     @Override
     protected String getDefaultMetricPrefix() {
         return METRIC_PREFIX;
@@ -58,7 +57,7 @@ public class IPMonitor extends ABaseMonitor {
         List<Instance> instances = initialiseInstances();
 
         for (Instance instance : instances) {
-
+            logger.info("Monitor started for instance:  " + instance.getDisplayName());
             IPMonitorTask task = new IPMonitorTask(serviceProvider, this.getContextConfiguration(), instance);
             AssertUtils.assertNotNull(instance.getDisplayName(), "The displayName can not be null");
             serviceProvider.submit(instance.getDisplayName(), task);
@@ -72,14 +71,13 @@ public class IPMonitor extends ABaseMonitor {
         List<Map> servers = (List<Map>) this.getContextConfiguration().getConfigYml().get("servers");
         AssertUtils.assertNotNull(servers, "The 'servers' section in config.yml is not initialised");
 
-        if(servers!=null && servers.size()>0){
-            for(Map<String,?> server : servers){
+        if (servers != null && servers.size() > 0) {
+            for (Map<String, ?> server : servers) {
                 Instance instance = new Instance();
-                if(Strings.isNullOrEmpty((String) server.get("displayName"))){
+                if (Strings.isNullOrEmpty((String) server.get("displayName"))) {
                     logger.error("Display name not mentioned for server ");
                     throw new RuntimeException("Display name not mentioned for server");
-                }
-                else{
+                } else {
                     instance.setDisplayName((String) server.get("displayName"));
                 }
 
@@ -90,14 +88,13 @@ public class IPMonitor extends ABaseMonitor {
                 instance.setUsername((String) server.get("username"));
 
 
-                if(!Strings.isNullOrEmpty((String) server.get("password"))){
+                if (!Strings.isNullOrEmpty((String) server.get("password"))) {
                     instance.setPassword((String) server.get("password"));
-                }
-                else if(!Strings.isNullOrEmpty((String) server.get("encryptedPassword"))){
+                } else if (!Strings.isNullOrEmpty((String) server.get("encryptedPassword"))) {
                     try {
                         Map<String, String> args = Maps.newHashMap();
-                        args.put(TaskInputArgs.ENCRYPTED_PASSWORD, (String)server.get("encryptedPassword"));
-                        args.put(TaskInputArgs.ENCRYPTION_KEY, (String)this.getContextConfiguration().getConfigYml().get("encryptionKey"));
+                        args.put(TaskInputArgs.ENCRYPTED_PASSWORD, (String) server.get("encryptedPassword"));
+                        args.put(TaskInputArgs.ENCRYPTION_KEY, (String) this.getContextConfiguration().getConfigYml().get("encryptionKey"));
                         instance.setPassword(CryptoUtil.getPassword(args));
 
                     } catch (IllegalArgumentException e) {
@@ -116,16 +113,14 @@ public class IPMonitor extends ABaseMonitor {
                 AssertUtils.assertNotNull(server.get("userNameSpace"), "The userNameSpace is not initialised");
                 instance.setUserNameSpace((String) server.get("userNameSpace"));
 
-                if(server.get("useSSL")!=null){
+                if (server.get("useSSL") != null) {
                     instance.setUseSSL((Boolean) server.get("useSSL"));
-                }
-                else{
+                } else {
                     instance.setUseSSL(false);
                 }
                 instances.add(instance);
             }
-        }
-        else{
+        } else {
             logger.error("no instances configured");
         }
         return instances;
@@ -138,7 +133,7 @@ public class IPMonitor extends ABaseMonitor {
         return servers.size();
     }
 
-    /*public static void main(String[] args) throws TaskExecutionException {
+/*    public static void main(String[] args) throws TaskExecutionException {
 
         ConsoleAppender ca = new ConsoleAppender();
         ca.setWriter(new OutputStreamWriter(System.out));

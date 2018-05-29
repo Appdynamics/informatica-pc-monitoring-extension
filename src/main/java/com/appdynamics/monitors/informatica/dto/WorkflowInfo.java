@@ -24,14 +24,6 @@ public class WorkflowInfo {
     private long workflowRunID;
     private long runErrorCode;
 
-    public WorkflowInfo() {
-    }
-
-    public WorkflowInfo(String name, String folderName) {
-        this.name = name;
-        this.folderName = folderName;
-    }
-
     public String getName() {
         return name;
     }

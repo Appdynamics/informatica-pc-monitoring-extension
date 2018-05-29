@@ -59,40 +59,30 @@ public class IPMonitorTask implements AMonitorTaskRunnable {
         this.soapClient = new SOAPClient();
     }
 
+    /**
+     * Attempts Login, on success starts DIServer thread, on failure, reports Availability metric.
+     */
     public void run(){
+
+        Phaser phaser = new Phaser();
         try {
             BigDecimal loginStatus = BigDecimal.ZERO;
             SOAPMessage response = soapClient.callSoapWebService(instance.getHost() + "Metadata", RequestTypeEnum.LOGIN.name(), instance, null, null, null, null);
 
-/*            String mssg = "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\">" +
-                    "   <soapenv:Header>" +
-                    "      <ns1:Context xmlns:ns1=\"http://www.informatica.com/wsh\">" +
-                    "         <SessionId>cd032b685b50477e16321983a5a</SessionId>" +
-                    "      </ns1:Context>" +
-                    "   </soapenv:Header>" +
-                    "   <soapenv:Body>" +
-                    "      <ns1:LoginReturn xmlns:ns1=\"http://www.informatica.com/wsh\">cd032b685b50477e16321983a5a</ns1:LoginReturn>" +
-                    "   </soapenv:Body>" +
-                    "</soapenv:Envelope>";
-            InputStream is = new ByteArrayInputStream(mssg.getBytes());
-            SOAPMessage responseStr = MessageFactory.newInstance().createMessage(null, is);
-            SOAPBody respBody = responseStr.getSOAPBody();*/
-
             LoginResponse loginResponse = new LoginResponse(response);
             sessionID = loginResponse.getSessionId();
+
             if(StringUtils.hasText(sessionID)){
                 loginStatus = BigDecimal.ONE;
+
+                DIServerTask DIServerTask = new DIServerTask(configuration, instance, metricWriterHelper, metricPrefix, phaser, soapClient, sessionID);
+                configuration.getContext().getExecutorService().execute("MetricCollectorTask", DIServerTask);
+                logger.debug("Registering MetricCollectorTask phaser for " + displayName);
             }
-            metricWriterHelper.printMetric(metricPrefix + "|Availability", loginStatus, "AVG.AVG.IND");
-
-            Phaser phaser = new Phaser();
-
-            DIServerTask DIServerTask = new DIServerTask(configuration, instance, metricWriterHelper, metricPrefix, phaser, soapClient, sessionID);
-            configuration.getContext().getExecutorService().execute("MetricCollectorTask", DIServerTask);
-            logger.debug("Registering MetricCollectorTask phaser for " + displayName);
-
             //Wait for all tasks to finish
-            phaser.arriveAndAwaitAdvance();
+            int phase = phaser.arriveAndAwaitAdvance();
+            System.out.println(phase);
+            metricWriterHelper.printMetric(metricPrefix + "|Availability", loginStatus, "AVG.AVG.IND");
             logger.info("Completed the Informatica Power Center Monitoring task");
 
         }catch(Exception e) {
@@ -102,9 +92,6 @@ public class IPMonitorTask implements AMonitorTaskRunnable {
 
     public void onTaskComplete() {
         logger.info("All tasks for instance {} finished");
-        if(sessionID != null){
-            soapClient.callSoapWebService(instance.getHost() + "Metadata", RequestTypeEnum.LOGOUT.name(), instance, sessionID, null, null, null);
-        }
     }
 
 }
