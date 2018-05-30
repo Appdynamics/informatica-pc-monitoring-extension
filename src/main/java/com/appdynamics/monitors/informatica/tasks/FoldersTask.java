@@ -39,20 +39,14 @@ public class FoldersTask implements Runnable {
 
     private Phaser phaser;
 
-    private SOAPClient soapClient;
-
-    private static String sessionID;
-
     private List<DIServerInfo> diServerInfos;
 
-    public FoldersTask(MonitorContextConfiguration contextConfiguration, Instance instance, MetricWriteHelper metricWriteHelper, String metricPrefix, Phaser phaser, SOAPClient soapClient, String sessionID, List<DIServerInfo> diServerInfo) {
+    public FoldersTask(MonitorContextConfiguration contextConfiguration, Instance instance, MetricWriteHelper metricWriteHelper, String metricPrefix, Phaser phaser, List<DIServerInfo> diServerInfo) {
         this.contextConfiguration = contextConfiguration;
         this.instance = instance;
         this.metricWriterHelper = metricWriteHelper;
         this.metricPrefix = metricPrefix;
         this.phaser = phaser;
-        this.soapClient = soapClient;
-        this.sessionID = sessionID;
         this.diServerInfos = diServerInfo;
         phaser.register();
     }
@@ -62,14 +56,14 @@ public class FoldersTask implements Runnable {
      */
     public void run() {
         try {
-            SOAPMessage soapResponse = soapClient.callSoapWebService(instance.getHost() + "Metadata", RequestTypeEnum.GETALLFOLDERS.name(), instance, sessionID, null, null, null);
+            SOAPMessage soapResponse = SOAPClient.callSoapWebService(instance.getHost() + "Metadata", RequestTypeEnum.GETALLFOLDERS.name(), instance, null, null, null);
 
             AllFoldersResponse allFoldersResponse = new AllFoldersResponse(soapResponse);
 
             //Having retrieved allFolders, get all work-flows for each folder one by one with max 2 attempts
             for(String folderName : allFoldersResponse.getFoldersInfo()){
                 logger.debug("Creating getAllWorkflows Task");
-                AllWorkFlowsTask allWorkFlowsTask = new AllWorkFlowsTask(contextConfiguration, instance, metricWriterHelper, metricPrefix, phaser, soapClient, sessionID, folderName, diServerInfos);
+                AllWorkFlowsTask allWorkFlowsTask = new AllWorkFlowsTask(contextConfiguration, instance, metricWriterHelper, metricPrefix, phaser, folderName, diServerInfos);
                 contextConfiguration.getContext().getExecutorService().execute("MetricCollectorTask", allWorkFlowsTask);
             }
             phaser.arriveAndAwaitAdvance();

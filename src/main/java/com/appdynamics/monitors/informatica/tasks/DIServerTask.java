@@ -11,6 +11,7 @@ package com.appdynamics.monitors.informatica.tasks;
 import com.appdynamics.extensions.MetricWriteHelper;
 import com.appdynamics.extensions.conf.MonitorContextConfiguration;
 import com.appdynamics.extensions.metrics.Metric;
+import com.appdynamics.monitors.informatica.IPMonitorTask;
 import com.appdynamics.monitors.informatica.Instance;
 import com.appdynamics.monitors.informatica.dto.DIServerInfo;
 import com.appdynamics.monitors.informatica.enums.RequestTypeEnum;
@@ -20,7 +21,10 @@ import com.appdynamics.monitors.informatica.saop.SOAPClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.xml.soap.MessageFactory;
 import javax.xml.soap.SOAPMessage;
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Phaser;
@@ -44,18 +48,12 @@ public class DIServerTask implements Runnable {
 
     private Phaser phaser;
 
-    private SOAPClient soapClient;
-
-    private static String sessionID;
-
-    public DIServerTask(MonitorContextConfiguration contextConfiguration, Instance instance, MetricWriteHelper metricWriterHelper, String metricPrefix, Phaser phaser, SOAPClient soapClient, String sessionID) {
+    public DIServerTask(MonitorContextConfiguration contextConfiguration, Instance instance, MetricWriteHelper metricWriterHelper, String metricPrefix, Phaser phaser) {
         this.contextConfiguration = contextConfiguration;
         this.instance = instance;
         this.metricWriterHelper = metricWriterHelper;
         this.metricPrefix = metricPrefix;
         this.phaser = phaser;
-        this.soapClient = soapClient;
-        this.sessionID = sessionID;
         phaser.register();
     }
 
@@ -64,7 +62,24 @@ public class DIServerTask implements Runnable {
      */
     public void run() {
         try {
-            SOAPMessage soapResponse = soapClient.callSoapWebService(instance.getHost() + "Metadata", RequestTypeEnum.ALLDISERVERS.name(), instance, sessionID, null, null, null);
+            SOAPMessage soapResponse = SOAPClient.callSoapWebService(instance.getHost() + "Metadata", RequestTypeEnum.ALLDISERVERS.name(), instance, IPMonitorTask.sessionID, null, null);
+
+            /*String mssg = "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\">" +
+                    "   <soapenv:Body>" +
+                    "      <soapenv:Fault>" +
+                    "         <faultcode>Server</faultcode>" +
+                    "         <faultstring>Session ID is not valid.</faultstring>" +
+                    "         <detail>" +
+                    "            <ns1:WSHFaultDetails xmlns:ns1=\"http://www.informatica.com/wsh\">" +
+                    "               <ErrorCode>WSH_95064</ErrorCode>" +
+                    "               <ExtendedDetails/>" +
+                    "            </ns1:WSHFaultDetails>" +
+                    "         </detail>" +
+                    "      </soapenv:Fault>" +
+                    "   </soapenv:Body>" +
+                    "</soapenv:Envelope>";
+            InputStream is = new ByteArrayInputStream(mssg.getBytes());
+            SOAPMessage responseStr = MessageFactory.newInstance().createMessage(null, is);*/
 
             AllDIServerResponse allDIServerResponse = new AllDIServerResponse(soapResponse);
 
@@ -75,7 +90,7 @@ public class DIServerTask implements Runnable {
                 String serverMetricPrefix = metricPrefix + "|" + serverInfo.getDomainName() + "|" + serverInfo.getServiceName() + "|";
 
                 logger.debug("Creating pingDIServer request");
-                soapResponse = soapClient.callSoapWebService(instance.getHost() + "DataIntegration", RequestTypeEnum.PINGDISERVER.name(), instance, sessionID, null, null, serverInfo.getServiceName());
+                soapResponse = SOAPClient.callSoapWebService(instance.getHost() + "DataIntegration", RequestTypeEnum.PINGDISERVER.name(), instance, null, null, serverInfo.getServiceName());
 
                 PingDIServerResponse DIServerResponse = new PingDIServerResponse(soapResponse);
 
@@ -84,7 +99,7 @@ public class DIServerTask implements Runnable {
             }
 
             // Task to get all folders information
-            FoldersTask foldersTask = new FoldersTask(contextConfiguration, instance, metricWriterHelper, metricPrefix, phaser, soapClient, sessionID, serverInfoList);
+            FoldersTask foldersTask = new FoldersTask(contextConfiguration, instance, metricWriterHelper, metricPrefix, phaser, serverInfoList);
             contextConfiguration.getContext().getExecutorService().execute("MetricCollectorTask", foldersTask);
             logger.debug("Registering MetricCollectorTask phaser for " + instance.getDisplayName());
 

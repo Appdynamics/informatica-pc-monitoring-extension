@@ -40,22 +40,16 @@ public class AllWorkFlowsTask implements Runnable {
 
     private Phaser phaser;
 
-    private SOAPClient soapClient;
-
-    private static String sessionID;
-
     private String folderName;
 
     private List<DIServerInfo> DIServerInfos;
 
-    public AllWorkFlowsTask(MonitorContextConfiguration contextConfiguration, Instance instance, MetricWriteHelper metricWriterHelper, String metricPrefix, Phaser phaser, SOAPClient soapClient, String sessionID, String folderName, List<DIServerInfo> DIServerInfos) {
+    public AllWorkFlowsTask(MonitorContextConfiguration contextConfiguration, Instance instance, MetricWriteHelper metricWriterHelper, String metricPrefix, Phaser phaser,  String folderName, List<DIServerInfo> DIServerInfos) {
         this.contextConfiguration = contextConfiguration;
         this.instance = instance;
         this.metricWriterHelper = metricWriterHelper;
         this.metricPrefix = metricPrefix;
         this.phaser = phaser;
-        this.soapClient = soapClient;
-        this.sessionID = sessionID;
         this.folderName = folderName;
         this.DIServerInfos = DIServerInfos;
         phaser.register();
@@ -67,7 +61,7 @@ public class AllWorkFlowsTask implements Runnable {
     public void run() {
         try {
             logger.debug("Creating workflowDetails request");
-            SOAPMessage soapResponse = soapClient.callSoapWebService(instance.getHost() + "Metadata", RequestTypeEnum.GETALLWORKFLOWS.name(), instance, sessionID, folderName, null, null);
+            SOAPMessage soapResponse = SOAPClient.callSoapWebService(instance.getHost() + "Metadata", RequestTypeEnum.GETALLWORKFLOWS.name(), instance, folderName, null, null);
 
             AllWorkflowResponse allWorkflowResponse = new AllWorkflowResponse(soapResponse);
             List<WorkflowInfo> workflowList = allWorkflowResponse.getAllWorkflows();
@@ -76,7 +70,7 @@ public class AllWorkFlowsTask implements Runnable {
             for(WorkflowInfo workflowInfo : workflowList){
 
                 logger.debug("Creating workflowDetails Task");
-                WorkFlowDetailsTask workFlowDetailsTask = new WorkFlowDetailsTask(contextConfiguration, instance, metricWriterHelper, metricPrefix, phaser, soapClient, sessionID, folderName, workflowInfo.getName(), DIServerInfos);
+                WorkFlowDetailsTask workFlowDetailsTask = new WorkFlowDetailsTask(contextConfiguration, instance, metricWriterHelper, metricPrefix, phaser, folderName, workflowInfo.getName(), DIServerInfos);
                 contextConfiguration.getContext().getExecutorService().execute("MetricCollectorTask", workFlowDetailsTask);
             }
             phaser.arriveAndAwaitAdvance();

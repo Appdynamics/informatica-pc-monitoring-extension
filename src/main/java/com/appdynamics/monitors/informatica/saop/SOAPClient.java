@@ -8,9 +8,11 @@
 
 package com.appdynamics.monitors.informatica.saop;
 
+import com.appdynamics.monitors.informatica.IPMonitorTask;
 import com.appdynamics.monitors.informatica.Instance;
 import com.appdynamics.monitors.informatica.request.BaseRequest;
 import com.appdynamics.monitors.informatica.enums.RequestTypeEnum;
+import com.appdynamics.monitors.informatica.response.LoginResponse;
 import org.slf4j.LoggerFactory;
 
 import javax.xml.namespace.QName;
@@ -32,24 +34,23 @@ public class SOAPClient {
 
     /**
      * Creates SOAP request based on requestType
+     *
      * @param requestType
      * @param instanceInfo
-     * @param sessionID
      * @return
      * @throws Exception
      */
-    public static SOAPMessage createSOAPRequest(String requestType, Instance instanceInfo, String sessionID, String folderName, String workflowName, String serverName) throws Exception {
+    public static SOAPMessage createSOAPRequest(String requestType, Instance instanceInfo, String folderName, String workflowName, String serverName) throws Exception {
 
         MessageFactory messageFactory = MessageFactory.newInstance();
         SOAPMessage soapMessage = messageFactory.createMessage();
 
-        createSoapEnvelope(soapMessage, requestType, instanceInfo, sessionID, folderName, workflowName, serverName);
+        createSoapEnvelope(soapMessage, requestType, instanceInfo, folderName, workflowName, serverName);
         soapMessage.saveChanges();
 
-        if(logger.isDebugEnabled()){
+        if (logger.isDebugEnabled()) {
             ByteArrayOutputStream out = new ByteArrayOutputStream();
-            soapMessage.writeTo(out);
-            logger.debug( requestType + " SOAP Request being sent: " + out.toString());
+            logger.debug(requestType + " SOAP Request being sent: " + out.toString());
         }
 
         //soapMessage.writeTo(System.out);
@@ -58,13 +59,13 @@ public class SOAPClient {
 
     /**
      * Invokes the endpoint with the soap request
+     *
      * @param soapEndpointUrl
      * @param soapAction
      * @param instanceInfo
-     * @param sessionID
      * @return SOAPMessage
      */
-    public static SOAPMessage callSoapWebService(String soapEndpointUrl, String soapAction, Instance instanceInfo, String sessionID, String folderName, String workflowName, String serverName) {
+    public static SOAPMessage callSoapWebService(String soapEndpointUrl, String soapAction, Instance instanceInfo, String folderName, String workflowName, String serverName) {
 
         SOAPMessage soapResponse = null;
         try {
@@ -72,13 +73,28 @@ public class SOAPClient {
             SOAPConnectionFactory soapConnectionFactory = SOAPConnectionFactory.newInstance();
             SOAPConnection soapConnection = soapConnectionFactory.createConnection();
 
-            // Send SOAP Message to SOAP Server
-            soapResponse = soapConnection.call(createSOAPRequest(soapAction, instanceInfo, sessionID, folderName, workflowName, serverName), soapEndpointUrl);
+            //numOfAttempts is defined for each server, if sessionID invalid message is received then login and re-attempt
+            for (int i=1; i<=instanceInfo.getNumOfAttempts(); i++) {
+                // Send SOAP Message to SOAP Server
+                soapResponse = soapConnection.call(createSOAPRequest(soapAction, instanceInfo, folderName, workflowName, serverName), soapEndpointUrl);
 
-            if(logger.isDebugEnabled()){
+                if(soapResponse.getSOAPBody().hasFault() &&
+                        soapResponse.getSOAPBody().getFault().getFaultString().equals("Session ID is not valid.") && !(i==instanceInfo.getNumOfAttempts())){
+
+                    logger.debug("Error received in response for request, " + RequestTypeEnum.valueOf(soapAction) + "attempting login again" );
+                    //In case of invalid session, re-attempt login
+                    soapResponse = callSoapWebService(instanceInfo.getHost() + "Metadata", RequestTypeEnum.LOGIN.name(), instanceInfo, null, null, null);
+                    LoginResponse loginResponse = new LoginResponse(soapResponse);
+                    IPMonitorTask.sessionID = loginResponse.getSessionId();
+                    continue;
+                }else{
+                    break;
+                }
+            }
+            if (logger.isDebugEnabled()) {
                 ByteArrayOutputStream out = new ByteArrayOutputStream();
                 //soapResponse.writeTo(System.out);
-                logger.debug( " SOAP Response received: " + out.toString());
+                logger.debug(" SOAP Response received: " + out.toString());
             }
             soapConnection.close();
 
@@ -90,13 +106,13 @@ public class SOAPClient {
 
     /**
      * Creates SOAP envelope for given SOAP message and request type
+     *
      * @param soapMessage
      * @param requestType
      * @param instanceInfo
-     * @param sessionID
      * @throws SOAPException
      */
-    private static void createSoapEnvelope(SOAPMessage soapMessage, String requestType, Instance instanceInfo, String sessionID, String folderName, String workflowName, String serverName) throws SOAPException {
+    private static void createSoapEnvelope(SOAPMessage soapMessage, String requestType, Instance instanceInfo, String folderName, String workflowName, String serverName) throws SOAPException {
         SOAPPart soapPart = soapMessage.getSOAPPart();
 
         // SOAP Envelope
@@ -105,13 +121,13 @@ public class SOAPClient {
         envelope.addNamespaceDeclaration(namespaceXSD, namespaceXSDURI);
         envelope.addNamespaceDeclaration(namespaceXSI, namespaceXSIURI);
 
-        if(sessionID!=null) {
+        if (IPMonitorTask.sessionID != null) {
             SOAPHeader header = envelope.getHeader();
             //header.addNamespaceDeclaration("ns0", contextNamespace);
             SOAPHeaderElement context = header.addHeaderElement(new QName(contextNamespace, "Context", "ns0"));
             //context.addNamespaceDeclaration("ns0", contextNamespace);
             SOAPElement sessionIDElement = context.addChildElement("SessionId");
-            sessionIDElement.addTextNode(sessionID);
+            sessionIDElement.addTextNode(IPMonitorTask.sessionID);
         }
             /*
             Constructed SOAP Request Message:

@@ -11,6 +11,7 @@ package com.appdynamics.monitors.informatica.tasks;
 import com.appdynamics.extensions.MetricWriteHelper;
 import com.appdynamics.extensions.conf.MonitorContextConfiguration;
 import com.appdynamics.extensions.metrics.Metric;
+import com.appdynamics.monitors.informatica.IPMonitorTask;
 import com.appdynamics.monitors.informatica.Instance;
 import com.appdynamics.monitors.informatica.dto.DIServerInfo;
 import com.appdynamics.monitors.informatica.dto.WorkflowInfo;
@@ -42,10 +43,6 @@ public class WorkFlowDetailsTask implements Runnable {
 
     private Phaser phaser;
 
-    private SOAPClient soapClient;
-
-    private static String sessionID;
-
     private List<Metric> metrics = new ArrayList<Metric>();
 
     private String folderName;
@@ -54,14 +51,12 @@ public class WorkFlowDetailsTask implements Runnable {
 
     private List<DIServerInfo> diServerInfoList;
 
-    public WorkFlowDetailsTask(MonitorContextConfiguration contextConfiguration, Instance instance, MetricWriteHelper metricWriteHelper, String metricPrefix, Phaser phaser, SOAPClient soapClient, String sessionID, String folderName, String workflowName, List<DIServerInfo> diServerInfoList) {
+    public WorkFlowDetailsTask(MonitorContextConfiguration contextConfiguration, Instance instance, MetricWriteHelper metricWriteHelper, String metricPrefix, Phaser phaser, String folderName, String workflowName, List<DIServerInfo> diServerInfoList) {
         this.contextConfiguration = contextConfiguration;
         this.instance = instance;
         this.metricWriteHelper = metricWriteHelper;
         this.metricPrefix = metricPrefix;
         this.phaser = phaser;
-        this.soapClient = soapClient;
-        this.sessionID = sessionID;
         this.folderName = folderName;
         this.workflowName = workflowName;
         this.diServerInfoList = diServerInfoList;
@@ -76,13 +71,16 @@ public class WorkFlowDetailsTask implements Runnable {
 
             phaser.arriveAndAwaitAdvance();
             logger.debug("Creating WorkFlowDetails request");
-            //TODO: Add logic for checking second server in case first one fails: after error message sample resopnse is provided by client
-            SOAPMessage soapResponse = soapClient.callSoapWebService(instance.getHost() + "DataIntegration", RequestTypeEnum.GETWORKFLOWDETAILS.name(), instance, sessionID, folderName, workflowName, diServerInfoList.get(0).getServiceName());
+            SOAPMessage soapResponse = SOAPClient.callSoapWebService(instance.getHost() + "DataIntegration", RequestTypeEnum.GETWORKFLOWDETAILS.name(), instance, folderName, workflowName, diServerInfoList.get(0).getServiceName());
 
+            if(soapResponse.getSOAPBody().hasFault() &&
+                    soapResponse.getSOAPBody().getFault().getFaultCode().equals("Client")) {
+                logger.debug("Error received fetching workflowDetails from " + diServerInfoList.get(0).getServiceName());
+                logger.debug("Attempting to fetch workflowDetails from " + diServerInfoList.get(1).getServiceName());
+                soapResponse = SOAPClient.callSoapWebService(instance.getHost() + "DataIntegration", RequestTypeEnum.GETWORKFLOWDETAILS.name(), instance, folderName, workflowName, diServerInfoList.get(1).getServiceName());
+            }
             WorkflowDetailsResponse workflowDetailsResponse = new WorkflowDetailsResponse(soapResponse);
             WorkflowInfo workflowDetails = workflowDetailsResponse.getWorkflowDetails();
-
-            //List<Map> metricList = (List<Map>) contextConfiguration.getConfigYml().get("metrics");
 
             metrics.add(new Metric("WorkflowRunStatus", Integer.toString(workflowDetails.getWorkflowRunStatus().ordinal()), metricPrefix + "|"
                     + workflowDetails.getFolderName() + "|" + workflowDetails.getName() + "|" + "WorkflowRunStatus"));
@@ -102,8 +100,8 @@ public class WorkFlowDetailsTask implements Runnable {
         } finally {
             logger.debug("WorkFlowDetailsTask Phaser arrived for {}", instance.getDisplayName());
             phaser.arriveAndDeregister();
-            if (sessionID != null) {
-                soapClient.callSoapWebService(instance.getHost() + "Metadata", RequestTypeEnum.LOGOUT.name(), instance, sessionID, null, null, null);
+            if (IPMonitorTask.sessionID != null) {
+                SOAPClient.callSoapWebService(instance.getHost() + "Metadata", RequestTypeEnum.LOGOUT.name(), instance,null, null, null);
             }
         }
     }

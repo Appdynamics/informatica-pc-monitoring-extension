@@ -67,6 +67,7 @@ public class WorkflowDetailsResponse {
         }catch(SOAPException e){
             logger.error("SOAPException retrieving workflowDetails response: ", e);
         }
+        logger.debug("Returning workflowInfo for " + workflowInfo.getName() + " having runStatus: " + workflowInfo.getWorkflowRunStatus().name());
         return workflowInfo;
     }
 }
