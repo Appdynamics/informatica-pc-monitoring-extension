@@ -10,13 +10,23 @@ package com.appdynamics.monitors.informatica.saop;
 
 import com.appdynamics.monitors.informatica.IPMonitorTask;
 import com.appdynamics.monitors.informatica.Instance;
-import com.appdynamics.monitors.informatica.request.BaseRequest;
 import com.appdynamics.monitors.informatica.enums.RequestTypeEnum;
+import com.appdynamics.monitors.informatica.request.BaseRequest;
 import com.appdynamics.monitors.informatica.response.LoginResponse;
 import org.slf4j.LoggerFactory;
 
 import javax.xml.namespace.QName;
-import javax.xml.soap.*;
+import javax.xml.soap.MessageFactory;
+import javax.xml.soap.SOAPBody;
+import javax.xml.soap.SOAPConnection;
+import javax.xml.soap.SOAPConnectionFactory;
+import javax.xml.soap.SOAPElement;
+import javax.xml.soap.SOAPEnvelope;
+import javax.xml.soap.SOAPException;
+import javax.xml.soap.SOAPHeader;
+import javax.xml.soap.SOAPHeaderElement;
+import javax.xml.soap.SOAPMessage;
+import javax.xml.soap.SOAPPart;
 import java.io.ByteArrayOutputStream;
 
 /**
@@ -88,12 +98,15 @@ public class SOAPClient {
                     IPMonitorTask.sessionID = loginResponse.getSessionId();
                     continue;
                 }else{
+                    /*if(i == instanceInfo.getNumOfAttempts() && soapResponse.getSOAPBody().hasFault()){
+
+                    }*/
                     break;
                 }
             }
-            if (logger.isDebugEnabled()) {
+            if (logger.isDebugEnabled() && soapResponse!=null) {
                 ByteArrayOutputStream out = new ByteArrayOutputStream();
-                //soapResponse.writeTo(System.out);
+                soapResponse.writeTo(System.out);
                 logger.debug(" SOAP Response received: " + out.toString());
             }
             soapConnection.close();
@@ -192,6 +205,18 @@ public class SOAPClient {
         } catch (Exception e) {
             System.out.println(e.getMessage());
         }
+    }
+
+    public static URL createEvent(ControllerInfo controllerInfo,
+                                  String requestName, String errorMessage) throws Exception {
+        URIBuilder builder = new URIBuilder();
+        builder.setScheme("http").setHost(controllerInfo.getControllerHost()).setPort(controllerInfo.getControllerPort())
+                .setPath(CONTROLLER_EVENTS_ENDPOINT + "" + "/events")
+                .setParameter("severity", "ERROR")
+                .setParameter("summary", "Match Found in " + requestName + " : " + errorMessage)
+                .setParameter("eventtype", EVENT_TYPE)
+                .setParameter("customeventtype", "Informatica Error Response");
+        return builder.build().toURL();
     }*/
 
 }

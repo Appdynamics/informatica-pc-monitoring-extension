@@ -20,11 +20,7 @@ import com.appdynamics.monitors.informatica.tasks.DIServerTask;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.xml.soap.MessageFactory;
-import javax.xml.soap.SOAPBody;
 import javax.xml.soap.SOAPMessage;
-import java.io.ByteArrayInputStream;
-import java.io.InputStream;
 import java.math.BigDecimal;
 import java.util.concurrent.Phaser;
 
@@ -64,21 +60,6 @@ public class IPMonitorTask implements AMonitorTaskRunnable {
         try {
             BigDecimal loginStatus = BigDecimal.ZERO;
             SOAPMessage response = SOAPClient.callSoapWebService(instance.getHost() + "Metadata", RequestTypeEnum.LOGIN.name(), instance, null, null, null);
-
-            /*String mssg = "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\">" +
-                    "   <soapenv:Header>" +
-                    "      <ns1:Context xmlns:ns1=\"http://www.informatica.com/wsh\">" +
-                    "         <SessionId>cd032b685b50477e16321983a5a</SessionId>" +
-                    "      </ns1:Context>" +
-                    "   </soapenv:Header>" +
-                    "   <soapenv:Body>" +
-                    "      <ns1:LoginReturn xmlns:ns1=\"http://www.informatica.com/wsh\">cd032b685b50477e16321983a5a</ns1:LoginReturn>" +
-                    "   </soapenv:Body>" +
-                    "</soapenv:Envelope>";
-            InputStream is = new ByteArrayInputStream(mssg.getBytes());
-            SOAPMessage responseStr = MessageFactory.newInstance().createMessage(null, is);
-            SOAPBody respBody = responseStr.getSOAPBody();*/
-
 
             LoginResponse loginResponse = new LoginResponse(response);
             sessionID = loginResponse.getSessionId();

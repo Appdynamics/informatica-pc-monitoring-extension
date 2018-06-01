@@ -73,6 +73,7 @@ public class WorkFlowDetailsTask implements Runnable {
             logger.debug("Creating WorkFlowDetails request");
             SOAPMessage soapResponse = SOAPClient.callSoapWebService(instance.getHost() + "DataIntegration", RequestTypeEnum.GETWORKFLOWDETAILS.name(), instance, folderName, workflowName, diServerInfoList.get(0).getServiceName());
 
+            // In case of error response from one server try the next server,
             if(soapResponse.getSOAPBody().hasFault() &&
                     soapResponse.getSOAPBody().getFault().getFaultCode().equals("Client")) {
                 logger.debug("Error received fetching workflowDetails from " + diServerInfoList.get(0).getServiceName());

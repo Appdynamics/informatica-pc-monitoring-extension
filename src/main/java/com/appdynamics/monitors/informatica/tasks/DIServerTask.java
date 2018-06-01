@@ -21,10 +21,7 @@ import com.appdynamics.monitors.informatica.saop.SOAPClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.xml.soap.MessageFactory;
 import javax.xml.soap.SOAPMessage;
-import java.io.ByteArrayInputStream;
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Phaser;
@@ -62,24 +59,7 @@ public class DIServerTask implements Runnable {
      */
     public void run() {
         try {
-            SOAPMessage soapResponse = SOAPClient.callSoapWebService(instance.getHost() + "Metadata", RequestTypeEnum.ALLDISERVERS.name(), instance, IPMonitorTask.sessionID, null, null);
-
-            /*String mssg = "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\">" +
-                    "   <soapenv:Body>" +
-                    "      <soapenv:Fault>" +
-                    "         <faultcode>Server</faultcode>" +
-                    "         <faultstring>Session ID is not valid.</faultstring>" +
-                    "         <detail>" +
-                    "            <ns1:WSHFaultDetails xmlns:ns1=\"http://www.informatica.com/wsh\">" +
-                    "               <ErrorCode>WSH_95064</ErrorCode>" +
-                    "               <ExtendedDetails/>" +
-                    "            </ns1:WSHFaultDetails>" +
-                    "         </detail>" +
-                    "      </soapenv:Fault>" +
-                    "   </soapenv:Body>" +
-                    "</soapenv:Envelope>";
-            InputStream is = new ByteArrayInputStream(mssg.getBytes());
-            SOAPMessage responseStr = MessageFactory.newInstance().createMessage(null, is);*/
+            SOAPMessage soapResponse = SOAPClient.callSoapWebService( instance.getHost() + "Metadata", RequestTypeEnum.ALLDISERVERS.name(), instance, IPMonitorTask.sessionID, null, null);
 
             AllDIServerResponse allDIServerResponse = new AllDIServerResponse(soapResponse);
 

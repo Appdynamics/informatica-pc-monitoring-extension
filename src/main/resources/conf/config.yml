@@ -12,6 +12,7 @@ servers:
      password: "test"
      encryptedPassword: ""
      useSsl: false
+     numOfAttempts: 2
      domainName: "NAGP_DOMAIN_CDEV"
      repositoryName: "NAGP_REP_CDEV"
      userNameSpace: "Native"
