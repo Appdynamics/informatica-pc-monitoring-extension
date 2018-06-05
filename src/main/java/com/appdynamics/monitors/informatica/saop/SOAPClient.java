@@ -28,6 +28,10 @@ import javax.xml.soap.SOAPHeaderElement;
 import javax.xml.soap.SOAPMessage;
 import javax.xml.soap.SOAPPart;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.net.URL;
+import java.net.URLConnection;
+import java.net.URLStreamHandler;
 
 /**
  * @author Akshay Srivastava
@@ -58,8 +62,10 @@ public class SOAPClient {
         createSoapEnvelope(soapMessage, requestType, instanceInfo, folderName, workflowName, serverName);
         soapMessage.saveChanges();
 
+        //soapMessage.writeTo(System.out);
         if (logger.isDebugEnabled()) {
             ByteArrayOutputStream out = new ByteArrayOutputStream();
+            soapMessage.writeTo(out);
             logger.debug(requestType + " SOAP Request being sent: " + out.toString());
         }
 
@@ -86,6 +92,7 @@ public class SOAPClient {
             //numOfAttempts is defined for each server, if sessionID invalid message is received then login and re-attempt
             for (int i=1; i<=instanceInfo.getNumOfAttempts(); i++) {
                 // Send SOAP Message to SOAP Server
+                logger.debug("Invoking " + soapAction + " request to the endpoint: " + soapEndpointUrl);
                 soapResponse = soapConnection.call(createSOAPRequest(soapAction, instanceInfo, folderName, workflowName, serverName), soapEndpointUrl);
 
                 if(soapResponse.getSOAPBody().hasFault() &&
@@ -98,15 +105,12 @@ public class SOAPClient {
                     IPMonitorTask.sessionID = loginResponse.getSessionId();
                     continue;
                 }else{
-                    /*if(i == instanceInfo.getNumOfAttempts() && soapResponse.getSOAPBody().hasFault()){
-
-                    }*/
                     break;
                 }
             }
             if (logger.isDebugEnabled() && soapResponse!=null) {
                 ByteArrayOutputStream out = new ByteArrayOutputStream();
-                soapResponse.writeTo(System.out);
+                soapResponse.writeTo(out);
                 logger.debug(" SOAP Response received: " + out.toString());
             }
             soapConnection.close();
@@ -130,42 +134,22 @@ public class SOAPClient {
 
         // SOAP Envelope
         SOAPEnvelope envelope = soapPart.getEnvelope();
-        //envelope.addNamespaceDeclaration(namespaceSoap, namespaceSoapURI);
         envelope.addNamespaceDeclaration(namespaceXSD, namespaceXSDURI);
         envelope.addNamespaceDeclaration(namespaceXSI, namespaceXSIURI);
 
         if (IPMonitorTask.sessionID != null) {
             SOAPHeader header = envelope.getHeader();
-            //header.addNamespaceDeclaration("ns0", contextNamespace);
             SOAPHeaderElement context = header.addHeaderElement(new QName(contextNamespace, "Context", "ns0"));
-            //context.addNamespaceDeclaration("ns0", contextNamespace);
             SOAPElement sessionIDElement = context.addChildElement("SessionId");
             sessionIDElement.addTextNode(IPMonitorTask.sessionID);
         }
-            /*
-            Constructed SOAP Request Message:
-            <SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:myNamespace="http://www.webserviceX.NET">
-                <SOAP-ENV:Header/>
-                <SOAP-ENV:Body>
-                    <myNamespace:GetInfoByCity>
-                        <myNamespace:USCity>New York</myNamespace:USCity>
-                    </myNamespace:GetInfoByCity>
-                </SOAP-ENV:Body>
-            </SOAP-ENV:Envelope>
-            */
 
         RequestTypeEnum requestTypeEnum = RequestTypeEnum.valueOf(requestType);
         BaseRequest baseRequest = new BaseRequest(envelope);
 
         SOAPBody soapBody = baseRequest.getRequestBody(requestTypeEnum, instanceInfo, folderName, workflowName, serverName);
-        //envelope.addBody(soapBody);
-
-        // SOAP Body
-        /*SOAPBody soapBody = envelope.getBody();
-        SOAPElement soapBodyElem = soapBody.addChildElement("GetInfoByCity", namespace);
-        SOAPElement soapBodyElem1 = soapBodyElem.addChildElement("USCity", namespace);
-        soapBodyElem1.addTextNode("New York");*/
     }
+
 /*
     public static void main(String[] args){
         try {
