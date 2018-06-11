@@ -9,19 +9,21 @@
 package com.appdynamics.monitors.informatica.tasks;
 
 import com.appdynamics.extensions.MetricWriteHelper;
-import com.appdynamics.extensions.conf.MonitorContextConfiguration;
 import com.appdynamics.extensions.metrics.Metric;
 import com.appdynamics.monitors.informatica.IPMonitorTask;
 import com.appdynamics.monitors.informatica.Instance;
-import com.appdynamics.monitors.informatica.dto.DIServerInfo;
-import com.appdynamics.monitors.informatica.dto.WorkflowInfo;
-import com.appdynamics.monitors.informatica.enums.RequestTypeEnum;
-import com.appdynamics.monitors.informatica.response.WorkflowDetailsResponse;
-import com.appdynamics.monitors.informatica.saop.SOAPClient;
+import com.appdynamics.monitors.informatica.dataIntegration.DIServiceInfo;
+import com.appdynamics.monitors.informatica.dataIntegration.DataIntegrationInterface;
+import com.appdynamics.monitors.informatica.dataIntegration.DataIntegrationService;
+import com.appdynamics.monitors.informatica.dataIntegration.VoidRequest;
+import com.appdynamics.monitors.informatica.dataIntegration.WorkflowDetails;
+import com.appdynamics.monitors.informatica.dataIntegration.WorkflowRequest;
+import com.appdynamics.monitors.informatica.metadata.DIServerInfoArray;
+import com.appdynamics.monitors.informatica.metadata.FolderInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.xml.soap.SOAPMessage;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Phaser;
@@ -33,8 +35,6 @@ public class WorkFlowDetailsTask implements Runnable {
 
     private static final Logger logger = LoggerFactory.getLogger(WorkFlowDetailsTask.class);
 
-    private MonitorContextConfiguration contextConfiguration;
-
     private MetricWriteHelper metricWriteHelper;
 
     private Instance instance;
@@ -45,22 +45,24 @@ public class WorkFlowDetailsTask implements Runnable {
 
     private List<Metric> metrics = new ArrayList<Metric>();
 
-    private String folderName;
+    private FolderInfo folderInfo;
 
     private String workflowName;
 
-    private List<DIServerInfo> diServerInfoList;
+    private URL dataIntegrationURL;
 
-    public WorkFlowDetailsTask(MonitorContextConfiguration contextConfiguration, Instance instance, MetricWriteHelper metricWriteHelper, String metricPrefix, Phaser phaser, String folderName, String workflowName, List<DIServerInfo> diServerInfoList) {
-        this.contextConfiguration = contextConfiguration;
+    private DIServerInfoArray diServerInfoList;
+
+    public WorkFlowDetailsTask(Instance instance, MetricWriteHelper metricWriteHelper, String metricPrefix, Phaser phaser, FolderInfo folderInfo, String workflowName, DIServerInfoArray diServerInfoList, URL dataIntegrationURL) {
         this.instance = instance;
         this.metricWriteHelper = metricWriteHelper;
         this.metricPrefix = metricPrefix;
-        this.phaser = phaser;
-        this.folderName = folderName;
+        this.folderInfo = folderInfo;
         this.workflowName = workflowName;
         this.diServerInfoList = diServerInfoList;
+        this.dataIntegrationURL = dataIntegrationURL;
         phaser.register();
+        this.phaser = phaser;
     }
 
     /**
@@ -68,29 +70,42 @@ public class WorkFlowDetailsTask implements Runnable {
      */
     public void run() {
         try {
-
+            metricPrefix = metricPrefix + instance.getDomainName();
             phaser.arriveAndAwaitAdvance();
             logger.debug("Creating WorkFlowDetails request");
-            SOAPMessage soapResponse = SOAPClient.callSoapWebService(instance.getHost() + "DataIntegration", RequestTypeEnum.GETWORKFLOWDETAILS.name(), instance, folderName, workflowName, diServerInfoList.get(0).getServiceName());
+
+            DataIntegrationService DIservice = new DataIntegrationService(dataIntegrationURL);
+
+            DataIntegrationInterface DIServer = DIservice.getDataIntegration();
+
+            DIServiceInfo diServiceInfo = new DIServiceInfo();
+            diServiceInfo.setDomainName(instance.getDomainName());
+            diServiceInfo.setServiceName(diServerInfoList.getDIServerInfo().get(0).getName());
+
+            WorkflowRequest workflowRequest = new WorkflowRequest();
+
+            workflowRequest.setDIServiceInfo(diServiceInfo);
+            workflowRequest.setFolderName(folderInfo.getName());
+            workflowRequest.setWorkflowName(workflowName);
+
+            WorkflowDetails workflowDetails = DIServer.getWorkflowDetails(workflowRequest);
 
             // In case of error response from one server try the next server,
-            if(soapResponse.getSOAPBody().hasFault() &&
+            /*if(soapResponse.getSOAPBody().hasFault() &&
                     soapResponse.getSOAPBody().getFault().getFaultCode().equals("Client")) {
                 logger.debug("Error received fetching workflowDetails from " + diServerInfoList.get(0).getServiceName());
                 logger.debug("Attempting to fetch workflowDetails from " + diServerInfoList.get(1).getServiceName());
                 soapResponse = SOAPClient.callSoapWebService(instance.getHost() + "DataIntegration", RequestTypeEnum.GETWORKFLOWDETAILS.name(), instance, folderName, workflowName, diServerInfoList.get(1).getServiceName());
-            }
-            WorkflowDetailsResponse workflowDetailsResponse = new WorkflowDetailsResponse(soapResponse);
-            WorkflowInfo workflowDetails = workflowDetailsResponse.getWorkflowDetails();
+            }*/
 
             metrics.add(new Metric("WorkflowRunStatus", Integer.toString(workflowDetails.getWorkflowRunStatus().ordinal()), metricPrefix + "|"
-                    + workflowDetails.getFolderName() + "|" + workflowDetails.getName() + "|" + "WorkflowRunStatus"));
+                    + workflowDetails.getFolderName() + "|" + workflowDetails.getWorkflowName() + "|" + "WorkflowRunStatus"));
             metrics.add(new Metric("WorkflowRunType", Integer.toString(workflowDetails.getWorkflowRunType().ordinal()), metricPrefix + "|"
-                    + workflowDetails.getFolderName() + "|" + workflowDetails.getName() + "|" + "WorkflowRunType"));
+                    + workflowDetails.getFolderName() + "|" + workflowDetails.getWorkflowName() + "|" + "WorkflowRunType"));
             metrics.add(new Metric("RunErrorCode", Long.toString(workflowDetails.getRunErrorCode()), metricPrefix + "|"
-                    + workflowDetails.getFolderName() + "|" + workflowDetails.getName() + "|" + "RunErrorCode"));
-            metrics.add(new Metric("WorkflowRunId", Long.toString(workflowDetails.getWorkflowRunID()), metricPrefix + "|"
-                    + workflowDetails.getFolderName() + "|" + workflowDetails.getName() + "|" + "WorkflowRunId"));
+                    + workflowDetails.getFolderName() + "|" + workflowDetails.getWorkflowName() + "|" + "RunErrorCode"));
+            metrics.add(new Metric("WorkflowRunId", Long.toString(workflowDetails.getWorkflowRunId()), metricPrefix + "|"
+                    + workflowDetails.getFolderName() + "|" + workflowDetails.getWorkflowName() + "|" + "WorkflowRunId"));
 
             if (metrics != null && metrics.size() > 0) {
                 metricWriteHelper.transformAndPrintMetrics(metrics);
@@ -102,7 +117,15 @@ public class WorkFlowDetailsTask implements Runnable {
             logger.debug("WorkFlowDetailsTask Phaser arrived for {}", instance.getDisplayName());
             phaser.arriveAndDeregister();
             if (IPMonitorTask.sessionID != null) {
-                SOAPClient.callSoapWebService(instance.getHost() + "Metadata", RequestTypeEnum.LOGOUT.name(), instance,null, null, null);
+                try {
+                    DataIntegrationService DIservice = new DataIntegrationService(dataIntegrationURL);
+
+                    DataIntegrationInterface DIServer = DIservice.getDataIntegration();
+
+                    DIServer.logout(new VoidRequest());
+                } catch (Exception e) {
+                    logger.error("Logout exception error: ", e);
+                }
             }
         }
     }

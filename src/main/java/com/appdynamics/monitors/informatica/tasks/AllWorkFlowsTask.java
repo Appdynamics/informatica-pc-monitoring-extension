@@ -11,16 +11,16 @@ package com.appdynamics.monitors.informatica.tasks;
 import com.appdynamics.extensions.MetricWriteHelper;
 import com.appdynamics.extensions.conf.MonitorContextConfiguration;
 import com.appdynamics.monitors.informatica.Instance;
-import com.appdynamics.monitors.informatica.dto.DIServerInfo;
-import com.appdynamics.monitors.informatica.dto.WorkflowInfo;
-import com.appdynamics.monitors.informatica.enums.RequestTypeEnum;
-import com.appdynamics.monitors.informatica.response.AllWorkflowResponse;
-import com.appdynamics.monitors.informatica.saop.SOAPClient;
+import com.appdynamics.monitors.informatica.metadata.DIServerInfoArray;
+import com.appdynamics.monitors.informatica.metadata.FolderInfo;
+import com.appdynamics.monitors.informatica.metadata.MetadataInterface;
+import com.appdynamics.monitors.informatica.metadata.MetadataService;
+import com.appdynamics.monitors.informatica.metadata.WorkflowInfo;
+import com.appdynamics.monitors.informatica.metadata.WorkflowInfoArray;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.xml.soap.SOAPMessage;
-import java.util.List;
+import java.net.URL;
 import java.util.concurrent.Phaser;
 
 /**
@@ -40,19 +40,26 @@ public class AllWorkFlowsTask implements Runnable {
 
     private Phaser phaser;
 
-    private String folderName;
+    private FolderInfo folderInfo;
 
-    private List<DIServerInfo> DIServerInfos;
+    private URL metadataURL;
 
-    public AllWorkFlowsTask(MonitorContextConfiguration contextConfiguration, Instance instance, MetricWriteHelper metricWriterHelper, String metricPrefix, Phaser phaser,  String folderName, List<DIServerInfo> DIServerInfos) {
+    private URL dataIntegrationURL;
+
+
+    private DIServerInfoArray DIServerInfos;
+
+    public AllWorkFlowsTask(MonitorContextConfiguration contextConfiguration, Instance instance, MetricWriteHelper metricWriterHelper, String metricPrefix, Phaser phaser, FolderInfo folderInfo, DIServerInfoArray DIServerInfos, URL metadataURL, URL dataIntegrationURL) {
         this.contextConfiguration = contextConfiguration;
         this.instance = instance;
         this.metricWriterHelper = metricWriterHelper;
         this.metricPrefix = metricPrefix;
-        this.phaser = phaser;
-        this.folderName = folderName;
+        this.folderInfo = folderInfo;
         this.DIServerInfos = DIServerInfos;
+        this.metadataURL = metadataURL;
+        this.dataIntegrationURL = dataIntegrationURL;
         phaser.register();
+        this.phaser = phaser;
     }
 
     /**
@@ -61,22 +68,25 @@ public class AllWorkFlowsTask implements Runnable {
     public void run() {
         try {
             logger.debug("Creating workflowDetails request");
-            SOAPMessage soapResponse = SOAPClient.callSoapWebService(instance.getHost() + "Metadata", RequestTypeEnum.GETALLWORKFLOWS.name(), instance, folderName, null, null);
 
-            AllWorkflowResponse allWorkflowResponse = new AllWorkflowResponse(soapResponse);
-            List<WorkflowInfo> workflowList = allWorkflowResponse.getAllWorkflows();
+            MetadataService service = new MetadataService(metadataURL);
+
+            MetadataInterface server = service.getMetadata();
+
+            WorkflowInfoArray allWorkflowResponse = server.getAllWorkflows(folderInfo);
+
 
             //Having retrieved workflows, get details for each workflow one by one with max 2 attempts( one for each server present in DIServerInfos)
-            for(WorkflowInfo workflowInfo : workflowList){
+            for (WorkflowInfo workflowInfo : allWorkflowResponse.getWorkflowInfo()) {
 
                 logger.debug("Creating workflowDetails Task");
-                WorkFlowDetailsTask workFlowDetailsTask = new WorkFlowDetailsTask(contextConfiguration, instance, metricWriterHelper, metricPrefix, phaser, folderName, workflowInfo.getName(), DIServerInfos);
+                WorkFlowDetailsTask workFlowDetailsTask = new WorkFlowDetailsTask(instance, metricWriterHelper, metricPrefix, phaser, folderInfo, workflowInfo.getName(), DIServerInfos, dataIntegrationURL);
                 contextConfiguration.getContext().getExecutorService().execute("MetricCollectorTask", workFlowDetailsTask);
             }
             phaser.arriveAndAwaitAdvance();
-        }catch(Exception e){
+        } catch (Exception e) {
             logger.error("WorkflowDetail task error: ", e);
-        }finally {
+        } finally {
             logger.debug("Workflow Phaser arrived for {}", instance.getDisplayName());
             phaser.arriveAndDeregister();
         }

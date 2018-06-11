@@ -21,7 +21,10 @@ import org.apache.log4j.Level;
 import org.apache.log4j.PatternLayout;
 import org.slf4j.LoggerFactory;
 
+import javax.xml.ws.WebServiceException;
 import java.io.OutputStreamWriter;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -38,7 +41,6 @@ public class IPMonitor extends ABaseMonitor {
     private static final org.slf4j.Logger logger = LoggerFactory.getLogger(IPMonitor.class);
     private static final String METRIC_PREFIX = "Custom Metrics|InformaticaPowerCenter|";
 
-
     @Override
     protected String getDefaultMetricPrefix() {
         return METRIC_PREFIX;
@@ -49,7 +51,6 @@ public class IPMonitor extends ABaseMonitor {
         return "Informatica PowerCenter Monitor";
     }
 
-
     @Override
     protected void doRun(TasksExecutionServiceProvider serviceProvider) {
 
@@ -58,7 +59,23 @@ public class IPMonitor extends ABaseMonitor {
 
         for (Instance instance : instances) {
             logger.info("Monitor started for instance:  " + instance.getDisplayName());
-            IPMonitorTask task = new IPMonitorTask(serviceProvider, this.getContextConfiguration(), instance);
+
+            URL metadataURL = null;
+            WebServiceException e = null;
+            try {
+                metadataURL = new URL(instance.getHost() + "/Metadata");
+            } catch (MalformedURLException ex) {
+                logger.debug("Exception while creating url endpoint: " + ex.getMessage());
+            }
+
+            URL dataIntegrationURL = null;
+            try {
+                dataIntegrationURL = new URL(instance.getHost() + "/Metadata");
+            } catch (MalformedURLException ex) {
+                logger.debug("Exception while creating url endpoint: " + ex.getMessage());
+            }
+
+            IPMonitorTask task = new IPMonitorTask(serviceProvider, this.getContextConfiguration(), instance, metadataURL, dataIntegrationURL);
             AssertUtils.assertNotNull(instance.getDisplayName(), "The displayName can not be null");
             serviceProvider.submit(instance.getDisplayName(), task);
         }
@@ -136,7 +153,7 @@ public class IPMonitor extends ABaseMonitor {
         return servers.size();
     }
 
-    /*public static void main(String[] args) throws TaskExecutionException {
+    public static void main(String[] args) throws TaskExecutionException {
 
         ConsoleAppender ca = new ConsoleAppender();
         ca.setWriter(new OutputStreamWriter(System.out));
@@ -162,5 +179,5 @@ public class IPMonitor extends ABaseMonitor {
                 }
             }
         }, 2, 30, TimeUnit.SECONDS);
-    }*/
+    }
 }

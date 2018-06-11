@@ -115,7 +115,7 @@ public class Instance {
     }
 
     @Override
-    public String toString(){
+    public String toString() {
         StringBuilder builder = new StringBuilder();
         builder.append("host : " + host);
         builder.append("|");
@@ -129,9 +129,11 @@ public class Instance {
         builder.append("|");
         return builder.toString();
     }
+
     public String getDisplayName() {
         return displayName;
     }
+
     public void setDisplayName(String displayName) {
         this.displayName = displayName;
     }

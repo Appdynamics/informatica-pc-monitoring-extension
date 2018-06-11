@@ -11,15 +11,16 @@ package com.appdynamics.monitors.informatica.tasks;
 import com.appdynamics.extensions.MetricWriteHelper;
 import com.appdynamics.extensions.conf.MonitorContextConfiguration;
 import com.appdynamics.monitors.informatica.Instance;
-import com.appdynamics.monitors.informatica.dto.DIServerInfo;
-import com.appdynamics.monitors.informatica.enums.RequestTypeEnum;
-import com.appdynamics.monitors.informatica.response.AllFoldersResponse;
-import com.appdynamics.monitors.informatica.saop.SOAPClient;
+import com.appdynamics.monitors.informatica.metadata.DIServerInfoArray;
+import com.appdynamics.monitors.informatica.metadata.FolderInfo;
+import com.appdynamics.monitors.informatica.metadata.FolderInfoArray;
+import com.appdynamics.monitors.informatica.metadata.MetadataInterface;
+import com.appdynamics.monitors.informatica.metadata.MetadataService;
+import com.appdynamics.monitors.informatica.metadata.VoidRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.xml.soap.SOAPMessage;
-import java.util.List;
+import java.net.URL;
 import java.util.concurrent.Phaser;
 
 /**
@@ -39,16 +40,22 @@ public class FoldersTask implements Runnable {
 
     private Phaser phaser;
 
-    private List<DIServerInfo> diServerInfos;
+    private URL metadataURL;
 
-    public FoldersTask(MonitorContextConfiguration contextConfiguration, Instance instance, MetricWriteHelper metricWriteHelper, String metricPrefix, Phaser phaser, List<DIServerInfo> diServerInfo) {
+    private URL dataIntegrationURL;
+
+    private DIServerInfoArray diServerInfos;
+
+    public FoldersTask(MonitorContextConfiguration contextConfiguration, Instance instance, MetricWriteHelper metricWriteHelper, String metricPrefix, Phaser phaser, DIServerInfoArray diServerInfo, URL metadataURL, URL dataIntegrationURL) {
         this.contextConfiguration = contextConfiguration;
         this.instance = instance;
         this.metricWriterHelper = metricWriteHelper;
         this.metricPrefix = metricPrefix;
-        this.phaser = phaser;
         this.diServerInfos = diServerInfo;
+        this.metadataURL = metadataURL;
+        this.dataIntegrationURL = dataIntegrationURL;
         phaser.register();
+        this.phaser = phaser;
     }
 
     /**
@@ -56,21 +63,27 @@ public class FoldersTask implements Runnable {
      */
     public void run() {
         try {
-            SOAPMessage soapResponse = SOAPClient.callSoapWebService(instance.getHost() + "Metadata", RequestTypeEnum.GETALLFOLDERS.name(), instance, null, null, null);
+            MetadataService service = new MetadataService(metadataURL);
 
-            AllFoldersResponse allFoldersResponse = new AllFoldersResponse(soapResponse);
+            MetadataInterface server = service.getMetadata();
+
+            VoidRequest allFoldersReq = new VoidRequest();
+
+            //Retrieve allDIServers, ping each server one by one with max 2 attempts
+            FolderInfoArray allFoldersResponse = server.getAllFolders(allFoldersReq);
+            logger.debug("All folders response returned folder list of size: " + allFoldersResponse.getFolderInfo().size());
 
             //Having retrieved allFolders, get all work-flows for each folder one by one with max 2 attempts
-            for(String folderName : allFoldersResponse.getFoldersInfo()){
+            for (FolderInfo folderInfo : allFoldersResponse.getFolderInfo()) {
                 logger.debug("Creating getAllWorkflows Task");
-                AllWorkFlowsTask allWorkFlowsTask = new AllWorkFlowsTask(contextConfiguration, instance, metricWriterHelper, metricPrefix, phaser, folderName, diServerInfos);
+                AllWorkFlowsTask allWorkFlowsTask = new AllWorkFlowsTask(contextConfiguration, instance, metricWriterHelper, metricPrefix, phaser, folderInfo, diServerInfos, metadataURL, dataIntegrationURL);
                 contextConfiguration.getContext().getExecutorService().execute("MetricCollectorTask", allWorkFlowsTask);
             }
             phaser.arriveAndAwaitAdvance();
 
-        }catch(Exception e){
+        } catch (Exception e) {
             logger.error("FoldersTask task error: ", e);
-        }finally {
+        } finally {
             logger.debug("FoldersTask Phaser arrived for {}", instance.getDisplayName());
             phaser.arriveAndDeregister();
         }

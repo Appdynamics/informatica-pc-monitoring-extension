@@ -11,17 +11,21 @@ package com.appdynamics.monitors.informatica.tasks;
 import com.appdynamics.extensions.MetricWriteHelper;
 import com.appdynamics.extensions.conf.MonitorContextConfiguration;
 import com.appdynamics.extensions.metrics.Metric;
-import com.appdynamics.monitors.informatica.IPMonitorTask;
 import com.appdynamics.monitors.informatica.Instance;
-import com.appdynamics.monitors.informatica.dto.DIServerInfo;
-import com.appdynamics.monitors.informatica.enums.RequestTypeEnum;
-import com.appdynamics.monitors.informatica.response.AllDIServerResponse;
-import com.appdynamics.monitors.informatica.response.PingDIServerResponse;
-import com.appdynamics.monitors.informatica.saop.SOAPClient;
+import com.appdynamics.monitors.informatica.dataIntegration.DIServiceInfo;
+import com.appdynamics.monitors.informatica.dataIntegration.DataIntegrationInterface;
+import com.appdynamics.monitors.informatica.dataIntegration.DataIntegrationService;
+import com.appdynamics.monitors.informatica.dataIntegration.EPingState;
+import com.appdynamics.monitors.informatica.dataIntegration.PingDIServerRequest;
+import com.appdynamics.monitors.informatica.metadata.DIServerInfo;
+import com.appdynamics.monitors.informatica.metadata.DIServerInfoArray;
+import com.appdynamics.monitors.informatica.metadata.MetadataInterface;
+import com.appdynamics.monitors.informatica.metadata.MetadataService;
+import com.appdynamics.monitors.informatica.metadata.VoidRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.xml.soap.SOAPMessage;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Phaser;
@@ -43,15 +47,21 @@ public class DIServerTask implements Runnable {
 
     private String metricPrefix;
 
+    private URL metadataURL;
+
+    private URL dataIntegrationURL;
+
     private Phaser phaser;
 
-    public DIServerTask(MonitorContextConfiguration contextConfiguration, Instance instance, MetricWriteHelper metricWriterHelper, String metricPrefix, Phaser phaser) {
+    public DIServerTask(MonitorContextConfiguration contextConfiguration, Instance instance, MetricWriteHelper metricWriterHelper, String metricPrefix, Phaser phaser, URL metadataURL, URL dataIntegrationURL) {
         this.contextConfiguration = contextConfiguration;
         this.instance = instance;
         this.metricWriterHelper = metricWriterHelper;
         this.metricPrefix = metricPrefix;
-        this.phaser = phaser;
         phaser.register();
+        this.phaser = phaser;
+        this.metadataURL = metadataURL;
+        this.dataIntegrationURL = dataIntegrationURL;
     }
 
     /**
@@ -59,27 +69,42 @@ public class DIServerTask implements Runnable {
      */
     public void run() {
         try {
-            SOAPMessage soapResponse = SOAPClient.callSoapWebService( instance.getHost() + "Metadata", RequestTypeEnum.ALLDISERVERS.name(), instance, IPMonitorTask.sessionID, null, null);
 
-            AllDIServerResponse allDIServerResponse = new AllDIServerResponse(soapResponse);
+            MetadataService service = new MetadataService(metadataURL);
 
-            //Having retrieved allDIServers, ping each server one by one with max 2 attempts
-            List<DIServerInfo> serverInfoList = allDIServerResponse.getServerInfo();
-            for(DIServerInfo serverInfo : serverInfoList){
-                serverInfo.setDomainName(instance.getDomainName());
-                String serverMetricPrefix = metricPrefix + "|" + serverInfo.getDomainName() + "|" + serverInfo.getServiceName() + "|";
+            MetadataInterface server = service.getMetadata();
+
+            VoidRequest allDIServerReq = new VoidRequest();
+
+            //Retrieve allDIServers, ping each server one by one with max 2 attempts
+            DIServerInfoArray serverInfoList = server.getAllDIServers(allDIServerReq);
+            for (DIServerInfo serverInfo : serverInfoList.getDIServerInfo()) {
+
+                String serverMetricPrefix = metricPrefix + "|" + instance.getDomainName() + "|" + serverInfo.getName() + "|";
 
                 logger.debug("Creating pingDIServer request");
-                soapResponse = SOAPClient.callSoapWebService(instance.getHost() + "DataIntegration", RequestTypeEnum.PINGDISERVER.name(), instance, null, null, serverInfo.getServiceName());
 
-                PingDIServerResponse DIServerResponse = new PingDIServerResponse(soapResponse);
+                DataIntegrationService DIservice = new DataIntegrationService(dataIntegrationURL);
 
-                serverInfo.setStatus(DIServerResponse.getStatus());
-                metrics.add(new Metric("DIServerStatus", Integer.toString(serverInfo.getStatus().ordinal()), serverMetricPrefix));
+                DataIntegrationInterface DIServer = DIservice.getDataIntegration();
+
+                PingDIServerRequest pingRequest = new PingDIServerRequest();
+
+                DIServiceInfo diServiceInfo = new DIServiceInfo();
+                diServiceInfo.setDomainName(instance.getDomainName());
+                diServiceInfo.setServiceName(serverInfo.getName());
+
+                pingRequest.setDIServiceInfo(diServiceInfo);
+                pingRequest.setTimeOut(Integer.parseInt(instance.getTimeout()));
+
+                EPingState pingState = DIServer.pingDIServer(pingRequest);
+                logger.debug("Ping state retrieved for " + serverInfo.getName() + ": " + pingState.value());
+
+                metrics.add(new Metric("DIServerStatus", Integer.toString(pingState.ordinal()), serverMetricPrefix));
             }
 
             // Task to get all folders information
-            FoldersTask foldersTask = new FoldersTask(contextConfiguration, instance, metricWriterHelper, metricPrefix, phaser, serverInfoList);
+            FoldersTask foldersTask = new FoldersTask(contextConfiguration, instance, metricWriterHelper, metricPrefix, phaser, serverInfoList, metadataURL, dataIntegrationURL);
             contextConfiguration.getContext().getExecutorService().execute("MetricCollectorTask", foldersTask);
             logger.debug("Registering MetricCollectorTask phaser for " + instance.getDisplayName());
 
@@ -87,9 +112,9 @@ public class DIServerTask implements Runnable {
                 metricWriterHelper.transformAndPrintMetrics(metrics);
             }
             phaser.arriveAndAwaitAdvance();
-        }catch(Exception e){
+        } catch (Exception e) {
             logger.error("DIServer flow error: ", e);
-        }finally {
+        } finally {
             logger.debug("DIServer Phaser arrived for {}", instance.getDisplayName());
             phaser.arriveAndDeregister();
         }
