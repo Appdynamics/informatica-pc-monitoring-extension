@@ -25,6 +25,8 @@ public class Instance {
     private String encryptionKey;
     private String timeout;
     private int numOfAttempts;
+    private String metadataURL;
+    private String dataIntegrationURL;
 
     public String getHost() {
         return host;
@@ -112,6 +114,22 @@ public class Instance {
 
     public void setNumOfAttempts(int numOfAttempts) {
         this.numOfAttempts = numOfAttempts;
+    }
+
+    public String getMetadataURL() {
+        return metadataURL;
+    }
+
+    public void setMetadataURL(String metadataURL) {
+        this.metadataURL = metadataURL;
+    }
+
+    public String getDataIntegrationURL() {
+        return dataIntegrationURL;
+    }
+
+    public void setDataIntegrationURL(String dataIntegrationURL) {
+        this.dataIntegrationURL = dataIntegrationURL;
     }
 
     @Override

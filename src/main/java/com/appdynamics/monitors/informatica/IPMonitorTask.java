@@ -60,7 +60,7 @@ public class IPMonitorTask implements AMonitorTaskRunnable {
 
             MetadataService service = new MetadataService(metadataURL);
 
-            MetadataInterface server = service.getMetadata();
+            MetadataInterface metadataProxy = service.getMetadata();
 
             LoginRequest loginRequest = new LoginRequest();
 
@@ -70,8 +70,7 @@ public class IPMonitorTask implements AMonitorTaskRunnable {
             loginRequest.setUserName(instance.getUsername());
             loginRequest.setUserNameSpace(instance.getUserNameSpace());
 
-
-            sessionID = server.login(loginRequest);
+            sessionID = metadataProxy.login(loginRequest);
 
             logger.debug("Response received from loginRequest: " + sessionID);
 

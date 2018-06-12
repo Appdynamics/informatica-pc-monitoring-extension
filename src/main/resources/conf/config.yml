@@ -7,15 +7,17 @@ metricPrefix: Custom Metrics|InformaticaPowerCenter|
 # Informatica PowerCenter particulars
 servers:
    - displayName: "InformaticaPowerCenterTest"
-     host: "http://infawebservicehubdeva.devweb.bp.com/wsh/services/BatchServices/"
+     metadataURL: "http://infawebservicehubdeva.devweb.bp.com/wsh/services/BatchServices/Metadata"
+     dataIntegrationURL: "http://infawebservicehubdeva.devweb.bp.com/wsh/services/BatchServices/DataIntegration"
      username: "INFA_WEBSRVCHUB"
-     password: "test"
+     password: "INFA_WEBSRVCHUB"
      encryptedPassword: ""
      useSsl: false
      numOfAttempts: 2
      domainName: "NAGP_DOMAIN_CDEV"
      repositoryName: "NAGP_REP_CDEV"
      userNameSpace: "Native"
+     timeout: 60
 
 connection:
   socketTimeout: 5000

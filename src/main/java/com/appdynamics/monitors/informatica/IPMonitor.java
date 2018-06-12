@@ -63,14 +63,14 @@ public class IPMonitor extends ABaseMonitor {
             URL metadataURL = null;
             WebServiceException e = null;
             try {
-                metadataURL = new URL(instance.getHost() + "/Metadata");
+                metadataURL = new URL(instance.getMetadataURL());
             } catch (MalformedURLException ex) {
                 logger.debug("Exception while creating url endpoint: " + ex.getMessage());
             }
 
             URL dataIntegrationURL = null;
             try {
-                dataIntegrationURL = new URL(instance.getHost() + "/Metadata");
+                dataIntegrationURL = new URL(instance.getDataIntegrationURL());
             } catch (MalformedURLException ex) {
                 logger.debug("Exception while creating url endpoint: " + ex.getMessage());
             }
@@ -98,8 +98,11 @@ public class IPMonitor extends ABaseMonitor {
                     instance.setDisplayName((String) server.get("displayName"));
                 }
 
-                AssertUtils.assertNotNull(server.get("host"), "The 'host name is not initialised");
-                instance.setHost((String) server.get("host"));
+                /*AssertUtils.assertNotNull(server.get("host"), "The 'host name is not initialised");
+                instance.setHost((String) server.get("host"));*/
+
+                instance.setMetadataURL((String) server.get("metadataURL"));
+                instance.setDataIntegrationURL((String) server.get("dataIntegrationURL"));
 
                 AssertUtils.assertNotNull(server.get("username"), "The 'username is not initialised");
                 instance.setUsername((String) server.get("username"));
@@ -132,6 +135,9 @@ public class IPMonitor extends ABaseMonitor {
 
                 AssertUtils.assertNotNull(server.get("userNameSpace"), "The userNameSpace is not initialised");
                 instance.setUserNameSpace((String) server.get("userNameSpace"));
+
+                AssertUtils.assertNotNull(server.get("timeout"), "The timeout is not initialised");
+                instance.setUserNameSpace((String) server.get("timeout"));
 
                 if (server.get("useSSL") != null) {
                     instance.setUseSSL((Boolean) server.get("useSSL"));

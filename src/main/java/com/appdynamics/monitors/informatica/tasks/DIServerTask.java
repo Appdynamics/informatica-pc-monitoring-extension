@@ -76,8 +76,10 @@ public class DIServerTask implements Runnable {
 
             VoidRequest allDIServerReq = new VoidRequest();
 
+
             //Retrieve allDIServers, ping each server one by one with max 2 attempts
             DIServerInfoArray serverInfoList = server.getAllDIServers(allDIServerReq);
+
             for (DIServerInfo serverInfo : serverInfoList.getDIServerInfo()) {
 
                 String serverMetricPrefix = metricPrefix + "|" + instance.getDomainName() + "|" + serverInfo.getName() + "|";
